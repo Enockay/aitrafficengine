@@ -1,0 +1,175 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Dark-first design tokens. :root is dark by default; .light opts into the light palette.
+   Neutral near-black surfaces (not tinted navy) + a validated, CVD-safe accent set —
+   see scripts/validate_palette.js in the dataviz skill for the categorical checks this
+   was run against. chart-1/2/3 (red/blue/green) are the trio actually rendered together
+   in the Dashboard/Analytics charts, so those three are the ones validated as a set;
+   purple/yellow are secondary accents (badges, highlights) with their own hex, not tied
+   1:1 to a chart slot. */
+/* Values are space-separated R G B channels (no #, no commas) so Tailwind can
+   compose them as rgb(var(--x) / <alpha-value>) — this is what makes bg-x/50-style
+   opacity modifiers work. Anything consuming these outside Tailwind (inline SVG
+   stroke/fill, style props) must wrap them the same way: rgb(var(--chart-1)). */
+:root {
+  --bg-primary: 10 10 11;
+  --bg-secondary: 19 19 22;
+  --bg-tertiary: 28 28 31;
+  --bg-surface: 8 8 10;
+
+  --text-primary: 242 242 240;
+  --text-secondary: 154 154 158;
+  --text-muted: 99 99 102;
+
+  --accent-red: 229 72 77;
+  --accent-purple: 142 78 198;
+  --accent-blue: 0 145 255;
+  --accent-green: 48 164 108;
+  --accent-yellow: 201 133 0;
+
+  --border-default: 35 35 38;
+  --border-focus: 229 72 77;
+
+  --chart-1: 229 72 77;
+  --chart-2: 0 145 255;
+  --chart-3: 48 164 108;
+  --chart-4: 142 78 198;
+  --chart-5: 201 133 0;
+
+  --radius: 0.75rem;
+}
+
+.light {
+  --bg-primary: 255 255 255;
+  --bg-secondary: 247 247 248;
+  --bg-tertiary: 236 236 238;
+  --bg-surface: 255 255 255;
+
+  --text-primary: 24 24 27;
+  --text-secondary: 82 82 91;
+  --text-muted: 139 139 144;
+
+  --accent-red: 229 72 77;
+  --accent-purple: 129 69 184;
+  --accent-blue: 9 104 217;
+  --accent-green: 24 121 78;
+  --accent-yellow: 163 82 0;
+
+  --border-default: 228 228 231;
+  --border-focus: 229 72 77;
+
+  --chart-1: 229 72 77;
+  --chart-2: 9 104 217;
+  --chart-3: 24 121 78;
+  --chart-4: 129 69 184;
+  --chart-5: 163 82 0;
+}
+
+@layer base {
+  * {
+    @apply border-border-default;
+  }
+  body {
+    @apply bg-bg-primary text-text-primary antialiased;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+}
+
+@layer utilities {
+  .landing-atmosphere {
+    background:
+      radial-gradient(ellipse 70% 55% at 50% -15%, rgba(229, 72, 77, 0.16), transparent 65%),
+      radial-gradient(ellipse 50% 40% at 90% 10%, rgba(142, 78, 198, 0.09), transparent 60%),
+      radial-gradient(ellipse 45% 35% at 8% 60%, rgba(0, 145, 255, 0.07), transparent 55%),
+      radial-gradient(ellipse 55% 45% at 50% 100%, rgba(229, 72, 77, 0.06), transparent 60%);
+  }
+
+  .landing-gradient-text {
+    background: linear-gradient(135deg, #f87171 0%, #e5484d 45%, #fb923c 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .landing-card {
+    @apply rounded-2xl border border-border-default bg-bg-secondary/50 backdrop-blur-sm;
+  }
+
+  .hexagon {
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  }
+
+  .landing-section-glow {
+    background: radial-gradient(ellipse 50% 40% at 50% 0%, rgba(229, 72, 77, 0.06), transparent 70%);
+  }
+
+  .landing-fade-up {
+    animation: landing-fade-up 0.7s ease-out both;
+  }
+
+  .landing-fade-up-delay-1 {
+    animation: landing-fade-up 0.7s ease-out 0.1s both;
+  }
+
+  .landing-fade-up-delay-2 {
+    animation: landing-fade-up 0.7s ease-out 0.2s both;
+  }
+
+  .landing-fade-up-delay-3 {
+    animation: landing-fade-up 0.7s ease-out 0.3s both;
+  }
+
+  /* Ambient float for small decorative UI (badge cards, mockup chips) — never
+     applied to large content blocks, continuous motion on those hurts readability. */
+  .landing-float-a {
+    animation:
+      landing-fade-up 0.7s ease-out 0.4s both,
+      landing-float 5.5s ease-in-out 1.1s infinite;
+  }
+
+  .landing-float-b {
+    animation:
+      landing-fade-up 0.7s ease-out 0.6s both,
+      landing-float 6.5s ease-in-out 1.4s infinite reverse;
+  }
+
+  .landing-float-loop {
+    animation: landing-float 6s ease-in-out infinite;
+  }
+
+  .landing-float-loop-delay {
+    animation: landing-float 7s ease-in-out 1s infinite reverse;
+  }
+}
+
+@keyframes landing-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes landing-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-float-a,
+  .landing-float-b,
+  .landing-float-loop,
+  .landing-float-loop-delay {
+    animation: none;
+  }
+}
