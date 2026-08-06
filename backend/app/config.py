@@ -62,6 +62,12 @@ class Settings(BaseSettings):
     aws_region: str = "us-east-1"
     s3_bucket_name: str | None = None
 
+    # Billing (Paystack). Public key is safe to expose client-side (checkout init);
+    # secret key signs API calls and verifies webhook signatures — never expose it
+    # client-side.
+    paystack_secret_key: str | None = None
+    paystack_public_key: str | None = None
+
     # Celery
     celery_broker_url: str = "redis://localhost:6379/1"
     celery_result_backend: str = "redis://localhost:6379/2"

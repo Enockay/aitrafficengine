@@ -14,6 +14,8 @@ export interface Post {
   published_at: string | null
   platform_post_id: string | null
   engagement_score: number
+  media_url: string | null
+  media_type: 'image' | 'video' | null
   variant_group_id: string | null
   variant_label: string | null
   created_at: string

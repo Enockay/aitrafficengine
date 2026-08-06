@@ -1,10 +1,12 @@
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.models.subscription import Subscription
 from app.models.user import User
+from app.services.plans import TRIAL_DAYS, TRIAL_PLAN_CODE
 from app.utils.referral import generate_unique_referral_code
 from app.utils.security import generate_verification_token, hash_password, hash_verification_token, verify_password
 
@@ -89,6 +91,15 @@ def register_user(
         email_verification_sent_at=datetime.now(timezone.utc),
     )
     db.add(user)
+    db.flush()  # assigns user.id, needed for the Subscription FK, before the shared commit below
+    db.add(
+        Subscription(
+            user_id=user.id,
+            plan_code=TRIAL_PLAN_CODE,
+            status="trialing",
+            trial_ends_at=datetime.now(timezone.utc) + timedelta(days=TRIAL_DAYS),
+        )
+    )
     db.commit()
     db.refresh(user)
     return user, raw_token

@@ -31,6 +31,14 @@ class Post(UUIDPrimaryKeyMixin, TimestampMixin, SoftDeleteMixin, Base):
     variant_group_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True, index=True)
     variant_label: Mapped[str | None] = mapped_column(String(1), nullable=True)
 
+    # Storage token, not a raw URL — same convention as Flyer.image_path — so a future
+    # BACKEND_URL change can't strand old media links (see the tracked-link bug this
+    # mirrors the fix for).
+    media_path: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    media_type: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    media_mime_type: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    content_hash: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+
     page: Mapped["Page"] = relationship(back_populates="posts")
     schedules: Mapped[list["Schedule"]] = relationship(back_populates="post")
     analytics: Mapped[list["Analytics"]] = relationship(back_populates="post")

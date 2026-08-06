@@ -7,6 +7,7 @@ import { ProtectedRoute } from '@/components/layout/ProtectedRoute'
 import { useRealtimeEvents } from '@/hooks/useRealtimeEvents'
 import { useAuthStore } from '@/stores/authStore'
 import Analytics from '@/pages/Analytics'
+import Billing from '@/pages/Billing'
 import Dashboard from '@/pages/Dashboard'
 import Docs from '@/pages/Docs'
 import Flyers from '@/pages/Flyers'
@@ -62,6 +63,7 @@ function App() {
               <Route path="/scheduler" element={<Scheduler />} />
               <Route path="/platforms" element={<Platforms />} />
               <Route path="/settings" element={<Settings />} />
+              <Route path="/billing" element={<Billing />} />
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

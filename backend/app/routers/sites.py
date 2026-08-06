@@ -24,6 +24,7 @@ from app.schemas.site import (
 )
 from app.services.activity_log import log_activity
 from app.services.crawler import CrawlError, apply_crawl_result, crawl_page as run_crawl, discover_site_urls
+from app.services.quotas import QuotaExceededError, check_can_add_site
 
 router = APIRouter(prefix="/sites", tags=["sites"])
 
@@ -107,6 +108,11 @@ def create_site(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    try:
+        check_can_add_site(db, current_user)
+    except QuotaExceededError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
+
     existing = db.execute(
         select(Site).where(Site.domain == payload.domain, Site.deleted_at.is_(None))
     ).scalar_one_or_none()

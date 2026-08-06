@@ -8,6 +8,7 @@ from app.routers import (
     activity_logs,
     analytics,
     auth,
+    billing,
     dashboard,
     flyers,
     optimal_times,
@@ -42,6 +43,7 @@ MEDIA_DIR.mkdir(parents=True, exist_ok=True)
 app.mount("/media", StaticFiles(directory=MEDIA_DIR), name="media")
 
 app.include_router(auth.router, prefix=settings.api_v1_prefix)
+app.include_router(billing.router, prefix=settings.api_v1_prefix)
 app.include_router(sites.router, prefix=settings.api_v1_prefix)
 app.include_router(pages.router, prefix=settings.api_v1_prefix)
 app.include_router(posts.router, prefix=settings.api_v1_prefix)

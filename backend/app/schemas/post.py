@@ -34,6 +34,8 @@ class PostOut(BaseModel):
     published_at: datetime | None
     platform_post_id: str | None
     engagement_score: float
+    media_url: str | None = None
+    media_type: str | None = None
     variant_group_id: uuid.UUID | None
     variant_label: str | None
     created_at: datetime

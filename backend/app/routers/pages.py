@@ -33,6 +33,8 @@ from app.services.ai_content import (
     generate_post as run_generate_post,
 )
 from app.services.crawler import CrawlError, apply_crawl_result, crawl_page as run_crawl
+from app.services.distribution import compute_content_hash
+from app.services.quotas import QuotaExceededError, check_can_create_post
 from app.services.trends import get_available_trends, record_trend_used
 
 router = APIRouter(prefix="/pages", tags=["pages"])
@@ -103,6 +105,7 @@ def _build_post_from_generation(db: Session, page: Page, platform: str, result: 
     # destination the redirect ultimately forwards to.
     redirect_url = f"{settings.backend_url}/r/{post.id}"
     post.body = post.body.replace(page.url, redirect_url)
+    post.content_hash = compute_content_hash(post.body)
     db.commit()
     db.refresh(post)
     return post
@@ -227,6 +230,10 @@ def generate_posts_for_page(
     db: Session = Depends(get_db),
 ):
     page = _get_owned_page(db, page_id, current_user)
+    try:
+        check_can_create_post(db, current_user)
+    except QuotaExceededError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
 
     kwargs = {"platform": payload.platform}
     if payload.tone:
@@ -269,6 +276,10 @@ def generate_variants_for_page(
     db: Session = Depends(get_db),
 ):
     page = _get_owned_page(db, page_id, current_user)
+    try:
+        check_can_create_post(db, current_user)
+    except QuotaExceededError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
 
     trend_candidates: list[str] = []
     if payload.platform == "twitter":

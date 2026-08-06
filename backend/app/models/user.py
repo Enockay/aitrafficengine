@@ -45,6 +45,9 @@ class User(UUIDPrimaryKeyMixin, TimestampMixin, SoftDeleteMixin, Base):
     password_reset_token: Mapped[str | None] = mapped_column(String(64), nullable=True)
     password_reset_sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
+    last_report_sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
     sites: Mapped[list["Site"]] = relationship(back_populates="user")
     platform_accounts: Mapped[list["PlatformAccount"]] = relationship(back_populates="user")
     activity_logs: Mapped[list["ActivityLog"]] = relationship(back_populates="user")
+    subscription: Mapped["Subscription | None"] = relationship(back_populates="user", uselist=False)

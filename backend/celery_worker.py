@@ -11,7 +11,7 @@ celery_app = Celery(
     "ai_traffic_engine",
     broker=settings.celery_broker_url,
     backend=settings.celery_result_backend,
-    include=["app.tasks.distribution", "app.tasks.maintenance", "app.tasks.trends"],
+    include=["app.tasks.distribution", "app.tasks.maintenance", "app.tasks.trends", "app.tasks.reports"],
 )
 
 celery_app.conf.task_routes = {}
@@ -25,5 +25,9 @@ celery_app.conf.beat_schedule = {
     "fetch-trending-topics": {
         "task": "fetch_trending_topics_task",
         "schedule": timedelta(hours=2.4),  # 10x/day
+    },
+    "send-due-user-reports": {
+        "task": "send_due_user_reports",
+        "schedule": timedelta(hours=1),
     },
 }

@@ -32,6 +32,7 @@ from app.services.image_generation import (
     ImageGenerationNotConfigured,
     generate_background_bytes,
 )
+from app.services.quotas import QuotaExceededError, check_can_generate_flyer
 from app.services.s3_storage import generate_presigned_url
 
 router = APIRouter(prefix="/flyers", tags=["flyers"])
@@ -128,6 +129,10 @@ def generate_flyer(
     db: Session = Depends(get_db),
 ):
     page = _get_owned_page(db, payload.page_id, current_user)
+    try:
+        check_can_generate_flyer(db, current_user)
+    except QuotaExceededError as exc:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
     site = db.get(Site, page.site_id)
 
     headline = payload.headline or page.title or "Check this out"

@@ -2,7 +2,7 @@ import { NavLink } from 'react-router-dom'
 import { LogOut, X, Zap } from 'lucide-react'
 
 import { useAuth } from '@/hooks/useAuth'
-import { NAV_SECTIONS, type NavItem, OVERVIEW_ITEM, SETTINGS_ITEM } from '@/lib/nav'
+import { BILLING_ITEM, NAV_SECTIONS, type NavItem, OVERVIEW_ITEM, SETTINGS_ITEM } from '@/lib/nav'
 import { cn, getInitials } from '@/lib/utils'
 
 function NavItemLink({ item, onNavigate }: { item: NavItem; onNavigate: () => void }) {
@@ -94,7 +94,8 @@ export function Sidebar({ open, onClose }: SidebarProps) {
             </div>
           ))}
 
-          <div className="mt-5 border-t border-border-default pt-3">
+          <div className="mt-5 space-y-1 border-t border-border-default pt-3">
+            <NavItemLink item={BILLING_ITEM} onNavigate={onClose} />
             <NavItemLink item={SETTINGS_ITEM} onNavigate={onClose} />
           </div>
         </nav>

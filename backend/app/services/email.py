@@ -1,4 +1,6 @@
+import base64
 import logging
+from datetime import date
 
 import httpx
 
@@ -23,12 +25,27 @@ def is_configured() -> bool:
     return bool(settings.brevo_api_key)
 
 
-def _send(to_email: str, to_name: str, subject: str, html_content: str) -> None:
+def _send(
+    to_email: str,
+    to_name: str,
+    subject: str,
+    html_content: str,
+    attachments: list[dict] | None = None,
+) -> None:
     if not settings.brevo_api_key:
         raise EmailNotConfigured("Email sending isn't configured yet. Set BREVO_API_KEY.")
 
+    payload = {
+        "sender": {"name": settings.brevo_sender_name, "email": settings.brevo_sender_email},
+        "to": [{"email": to_email, "name": to_name}],
+        "subject": subject,
+        "htmlContent": html_content,
+    }
+    if attachments:
+        payload["attachment"] = attachments
+
     try:
-        with httpx.Client(timeout=15) as client:
+        with httpx.Client(timeout=30) as client:
             resp = client.post(
                 BREVO_URL,
                 headers={
@@ -36,12 +53,7 @@ def _send(to_email: str, to_name: str, subject: str, html_content: str) -> None:
                     "Content-Type": "application/json",
                     "Accept": "application/json",
                 },
-                json={
-                    "sender": {"name": settings.brevo_sender_name, "email": settings.brevo_sender_email},
-                    "to": [{"email": to_email, "name": to_name}],
-                    "subject": subject,
-                    "htmlContent": html_content,
-                },
+                json=payload,
             )
     except httpx.HTTPError as exc:
         raise EmailSendError(f"Brevo request failed: {exc}") from exc
@@ -71,3 +83,24 @@ def send_password_reset_email(user: User, raw_token: str) -> None:
         f"password won't be changed.</p>"
     )
     _send(user.email, user.full_name, "Reset your password — AI Traffic Engine", html)
+
+
+def send_report_email(user: User, pdf_bytes: bytes, since: date, until: date) -> None:
+    html = (
+        f"<p>Hi {user.full_name},</p>"
+        f"<p>Here's your AI Traffic Engine report for {since.isoformat()} to {until.isoformat()} — "
+        f"posts published, clicks, and interactions, attached as a PDF.</p>"
+    )
+    attachment = [
+        {
+            "content": base64.b64encode(pdf_bytes).decode(),
+            "name": f"report_{since.isoformat()}_{until.isoformat()}.pdf",
+        }
+    ]
+    _send(
+        user.email,
+        user.full_name,
+        "Your AI Traffic Engine report",
+        html,
+        attachments=attachment,
+    )

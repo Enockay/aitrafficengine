@@ -1,8 +1,19 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type ChangeEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
 import { isAxiosError } from 'axios'
-import { AlertTriangle, CheckCircle2, ExternalLink, Loader2, Plus, Rocket, Trash2, X } from 'lucide-react'
+import {
+  AlertTriangle,
+  CheckCircle2,
+  ExternalLink,
+  ImageIcon,
+  Loader2,
+  Plus,
+  Rocket,
+  Trash2,
+  Wrench,
+  X,
+} from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -13,15 +24,18 @@ import { Select } from '@/components/ui/select'
 import { LinkedInPreview } from '@/components/posts/LinkedInPreview'
 import { RedditPreview } from '@/components/posts/RedditPreview'
 import { TweetThreadPreview } from '@/components/posts/TweetThreadPreview'
+import { useUsageQuery } from '@/hooks/useBilling'
 import { useOptimalTimesQuery } from '@/hooks/useOptimalTimes'
 import { usePlatformsQuery } from '@/hooks/usePlatforms'
 import {
   useApprovePost,
   useDeletePost,
+  useDeletePostMedia,
   usePublishPost,
   useRepairPostLink,
   useSchedulePost,
   useUpdatePost,
+  useUploadPostMedia,
   useVariantGroupQuery,
 } from '@/hooks/usePosts'
 import { nextOccurrence, toDatetimeLocalValue } from '@/lib/optimalTime'
@@ -61,13 +75,19 @@ export function PostEditorDialog({ post, pageTitle, pageUrl, onOpenChange }: Pos
   const [trackedUrl, setTrackedUrl] = useState('')
   const [accountId, setAccountId] = useState('')
   const [scheduledAt, setScheduledAt] = useState('')
+  const [mediaUrl, setMediaUrl] = useState<string | null>(null)
+  const [mediaType, setMediaType] = useState<'image' | 'video' | null>(null)
 
   const updatePost = useUpdatePost()
   const deletePost = useDeletePost()
   const approvePost = useApprovePost()
   const schedulePost = useSchedulePost()
   const publishPost = usePublishPost()
+  const repairPostLink = useRepairPostLink()
+  const uploadPostMedia = useUploadPostMedia()
+  const deletePostMedia = useDeletePostMedia()
   const { data: platforms } = usePlatformsQuery()
+  const { data: usage } = useUsageQuery()
   const { data: optimalTimes } = useOptimalTimesQuery(post?.platform)
   const { data: variantGroup } = useVariantGroupQuery(post?.variant_group_id)
 
@@ -92,6 +112,8 @@ export function PostEditorDialog({ post, pageTitle, pageUrl, onOpenChange }: Pos
       setTrackedUrl(post.tracked_url ?? '')
       setScheduledAt('')
       setAccountId('')
+      setMediaUrl(post.media_url ?? null)
+      setMediaType(post.media_type ?? null)
     }
   }, [post])
 
@@ -104,6 +126,20 @@ export function PostEditorDialog({ post, pageTitle, pageUrl, onOpenChange }: Pos
   if (!post) {
     return <Dialog open={false} onOpenChange={onOpenChange} />
   }
+
+  // The tracked link gets baked into post.body at generation time (see
+  // routers/pages.py) using whatever BACKEND_URL the server had then. If that was a
+  // dev/local address, the link is dead for anyone outside that machine — this is a
+  // client-side heuristic just to show the fix affordance; the backend re-checks
+  // authoritatively before actually rewriting anything.
+  const hasLocalTrackedLink = /https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?\/r\//.test(post.body ?? '')
+
+  const maxScheduleDate =
+    usage?.schedule_horizon_days != null
+      ? new Date(Date.now() + usage.schedule_horizon_days * 24 * 60 * 60 * 1000)
+      : null
+  const maxScheduleAt = maxScheduleDate ? toDatetimeLocalValue(maxScheduleDate) : undefined
+  const isOverHorizon = !!(maxScheduleDate && scheduledAt && new Date(scheduledAt) > maxScheduleDate)
 
   const hashtags = hashtagsInput
     .split(',')
@@ -157,6 +193,47 @@ export function PostEditorDialog({ post, pageTitle, pageUrl, onOpenChange }: Pos
     }
   }
 
+  async function handleRepairLink() {
+    try {
+      const updated = await repairPostLink.mutateAsync(post!.id)
+      if (updated.platform === 'twitter') {
+        setTweets(splitTweets(updated.body))
+      } else {
+        setBodyText(updated.body ?? '')
+      }
+      toast.success('Tracked link fixed')
+    } catch (error) {
+      const message = isAxiosError(error) ? error.response?.data?.detail : undefined
+      toast.error(message ?? 'Failed to fix link')
+    }
+  }
+
+  async function handleUploadMedia(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    try {
+      const updated = await uploadPostMedia.mutateAsync({ id: post!.id, file })
+      setMediaUrl(updated.media_url ?? null)
+      setMediaType(updated.media_type ?? null)
+      toast.success('Media uploaded')
+    } catch (error) {
+      const message = isAxiosError(error) ? error.response?.data?.detail : undefined
+      toast.error(message ?? 'Failed to upload media')
+    }
+  }
+
+  async function handleRemoveMedia() {
+    try {
+      await deletePostMedia.mutateAsync(post!.id)
+      setMediaUrl(null)
+      setMediaType(null)
+      toast.success('Media removed')
+    } catch {
+      toast.error('Failed to remove media')
+    }
+  }
+
   async function handleDelete() {
     if (!confirm('Delete this post?')) return
     try {
@@ -171,6 +248,10 @@ export function PostEditorDialog({ post, pageTitle, pageUrl, onOpenChange }: Pos
   async function handleSchedule() {
     if (!accountId || !scheduledAt) {
       toast.error('Pick an account and a time first')
+      return
+    }
+    if (maxScheduleDate && new Date(scheduledAt) > maxScheduleDate) {
+      toast.error(`Your plan allows scheduling up to ${usage?.schedule_horizon_days} days ahead`)
       return
     }
     try {
@@ -253,6 +334,32 @@ export function PostEditorDialog({ post, pageTitle, pageUrl, onOpenChange }: Pos
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <div className="space-y-4">
+            {hasLocalTrackedLink && (
+              <div className="flex items-center justify-between gap-3 rounded-md border border-accent-yellow/40 bg-accent-yellow/10 p-3">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle size={16} className="mt-0.5 shrink-0 text-accent-yellow" />
+                  <p className="text-body-sm text-text-secondary">
+                    This post's tracked link points at localhost — it was generated before{' '}
+                    <code>BACKEND_URL</code> was set to a public URL and will be dead for anyone else.
+                  </p>
+                </div>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={handleRepairLink}
+                  disabled={repairPostLink.isPending}
+                  className="shrink-0"
+                >
+                  {repairPostLink.isPending ? (
+                    <Loader2 size={14} className="animate-spin" />
+                  ) : (
+                    <Wrench size={14} />
+                  )}
+                  Fix link
+                </Button>
+              </div>
+            )}
+
             {isTwitter && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
@@ -358,9 +465,57 @@ export function PostEditorDialog({ post, pageTitle, pageUrl, onOpenChange }: Pos
               />
             </div>
 
+            <div className="space-y-2">
+              <Label>Media</Label>
+              {mediaUrl ? (
+                <div className="flex items-center gap-3 rounded-md border border-border-default bg-bg-surface p-2.5">
+                  {mediaType === 'video' ? (
+                    <video src={mediaUrl} className="h-16 w-16 rounded object-cover" muted />
+                  ) : (
+                    <img src={mediaUrl} alt="" className="h-16 w-16 rounded object-cover" />
+                  )}
+                  <span className="flex-1 text-body-sm text-text-secondary">
+                    {mediaType === 'video' ? 'Video attached' : 'Image attached'}
+                  </span>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={handleRemoveMedia}
+                    disabled={deletePostMedia.isPending}
+                  >
+                    {deletePostMedia.isPending ? <Loader2 size={14} className="animate-spin" /> : <X size={14} />}
+                    Remove
+                  </Button>
+                </div>
+              ) : (
+                <label className="flex cursor-pointer items-center justify-center gap-2 rounded-md border border-dashed border-border-default bg-bg-surface px-2.5 py-3 text-body-sm text-text-secondary hover:border-accent-red hover:text-accent-red">
+                  {uploadPostMedia.isPending ? (
+                    <Loader2 size={16} className="animate-spin" />
+                  ) : (
+                    <ImageIcon size={16} />
+                  )}
+                  {uploadPostMedia.isPending ? 'Uploading…' : 'Attach an image or video'}
+                  <input
+                    type="file"
+                    accept="image/*,video/*"
+                    className="hidden"
+                    onChange={handleUploadMedia}
+                    disabled={uploadPostMedia.isPending}
+                  />
+                </label>
+              )}
+            </div>
+
             {(post.status === 'approved' || post.status === 'failed') && (
               <div className="space-y-3 rounded-md border border-border-default bg-bg-surface p-3">
-                <Label>Publish</Label>
+                <div className="flex items-center justify-between">
+                  <Label>Publish</Label>
+                  {usage?.schedule_horizon_days != null && (
+                    <span className="text-caption text-text-muted">
+                      Up to {usage.schedule_horizon_days} days ahead
+                    </span>
+                  )}
+                </div>
                 {accounts.length === 0 ? (
                   <p className="text-body-sm text-text-secondary">
                     No connected {PLATFORM_LABEL[post.platform] ?? post.platform} account.{' '}
@@ -385,18 +540,26 @@ export function PostEditorDialog({ post, pageTitle, pageUrl, onOpenChange }: Pos
                           {optimalTimes.sample_size < 3 && ' (general best practice — not enough post history yet)'}
                         </Label>
                         <div className="flex flex-wrap gap-1.5">
-                          {optimalTimes.slots.map((slot) => (
-                            <button
-                              key={`${slot.weekday}-${slot.hour}`}
-                              type="button"
-                              onClick={() =>
-                                setScheduledAt(toDatetimeLocalValue(nextOccurrence(slot.weekday, slot.hour)))
-                              }
-                              className="rounded-full border border-border-default bg-bg-surface px-2.5 py-1 text-caption text-text-secondary hover:border-accent-red hover:text-accent-red"
-                            >
-                              {WEEKDAY_SHORT[slot.weekday]} {String(slot.hour).padStart(2, '0')}:00
-                            </button>
-                          ))}
+                          {optimalTimes.slots.map((slot) => {
+                            const occursAt = nextOccurrence(slot.weekday, slot.hour)
+                            const locked = !!(maxScheduleDate && occursAt > maxScheduleDate)
+                            return (
+                              <button
+                                key={`${slot.weekday}-${slot.hour}`}
+                                type="button"
+                                disabled={locked}
+                                title={locked ? 'Beyond your plan’s scheduling horizon — upgrade to pick this' : undefined}
+                                onClick={() => setScheduledAt(toDatetimeLocalValue(occursAt))}
+                                className={
+                                  locked
+                                    ? 'cursor-not-allowed rounded-full border border-border-default bg-bg-surface px-2.5 py-1 text-caption text-text-muted opacity-50'
+                                    : 'rounded-full border border-border-default bg-bg-surface px-2.5 py-1 text-caption text-text-secondary hover:border-accent-red hover:text-accent-red'
+                                }
+                              >
+                                {WEEKDAY_SHORT[slot.weekday]} {String(slot.hour).padStart(2, '0')}:00
+                              </button>
+                            )
+                          })}
                         </div>
                       </div>
                     )}
@@ -405,13 +568,14 @@ export function PostEditorDialog({ post, pageTitle, pageUrl, onOpenChange }: Pos
                         type="datetime-local"
                         value={scheduledAt}
                         onChange={(e) => setScheduledAt(e.target.value)}
+                        max={maxScheduleAt}
                         className="flex-1"
                       />
                       <Button
                         variant="secondary"
                         size="sm"
                         onClick={handleSchedule}
-                        disabled={schedulePost.isPending || !scheduledAt}
+                        disabled={schedulePost.isPending || !scheduledAt || isOverHorizon}
                       >
                         {schedulePost.isPending ? (
                           <Loader2 size={14} className="animate-spin" />
@@ -421,6 +585,19 @@ export function PostEditorDialog({ post, pageTitle, pageUrl, onOpenChange }: Pos
                         Schedule
                       </Button>
                     </div>
+                    {isOverHorizon && (
+                      <div className="flex items-center justify-between gap-2 rounded-md border border-accent-yellow/40 bg-accent-yellow/10 px-2.5 py-2">
+                        <p className="text-caption text-text-secondary">
+                          That's beyond your {usage?.schedule_horizon_days}-day scheduling limit.
+                        </p>
+                        <Link
+                          to="/billing"
+                          className="shrink-0 text-caption font-medium text-accent-blue hover:underline"
+                        >
+                          Upgrade
+                        </Link>
+                      </div>
+                    )}
                     <Button
                       size="sm"
                       className="w-full"

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { Check, Copy, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { isAxiosError } from 'axios'
@@ -10,6 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
+import { useSubscriptionQuery, useUsageQuery } from '@/hooks/useBilling'
 import { useAuth } from '@/hooks/useAuth'
 import { usePlatformCredentials } from '@/hooks/usePlatforms'
 import { COUNTRY_CODES } from '@/lib/countryCodes'
@@ -18,6 +20,8 @@ export default function Settings() {
   const { user, updateProfile } = useAuth()
   const isAdmin = user?.role === 'admin'
   const { data: credentials, isLoading, isError } = usePlatformCredentials(isAdmin)
+  const { data: subscription } = useSubscriptionQuery()
+  const { data: usage } = useUsageQuery()
   const [copied, setCopied] = useState(false)
 
   const [fullName, setFullName] = useState('')
@@ -139,6 +143,38 @@ export default function Settings() {
           )}
         </Button>
       </div>
+
+      {subscription && (
+        <div className="mb-8 rounded-lg border border-border-default bg-bg-secondary p-5">
+          <div className="mb-3 flex items-center justify-between">
+            <p className="text-body-sm font-medium text-text-primary">
+              Plan & usage — <span className="capitalize">{subscription.plan_code}</span>
+              {subscription.status === 'trialing' && (
+                <span className="ml-2 text-caption font-normal text-accent-yellow">Trial</span>
+              )}
+            </p>
+            <Link to="/billing" className="text-caption text-accent-blue hover:underline">
+              Manage plan
+            </Link>
+          </div>
+          {usage && (
+            <div className="grid grid-cols-1 gap-3 text-body-sm text-text-secondary sm:grid-cols-3">
+              <p>
+                Sites: {usage.sites_used}
+                {usage.sites_limit !== null ? ` / ${usage.sites_limit}` : ''}
+              </p>
+              <p>
+                Posts this month: {usage.posts_used_this_month}
+                {usage.posts_limit !== null ? ` / ${usage.posts_limit}` : ''}
+              </p>
+              <p>
+                Flyers this month: {usage.flyers_used_this_month}
+                {usage.flyers_limit !== null ? ` / ${usage.flyers_limit}` : ''}
+              </p>
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="mb-8 rounded-lg border border-border-default bg-bg-secondary p-5">
         <p className="mb-1 text-body-sm font-medium text-text-primary">Your referral code</p>

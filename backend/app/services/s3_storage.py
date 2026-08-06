@@ -57,3 +57,26 @@ def delete_flyer_image(key: str) -> None:
         _client().delete_object(Bucket=settings.s3_bucket_name, Key=key)
     except (BotoCoreError, ClientError):
         pass  # best-effort cleanup; a stale S3 object shouldn't block deleting the DB row
+
+
+def upload_post_media(file_bytes: bytes, filename: str, content_type: str) -> str:
+    """Uploads a user-supplied post attachment (image/video) to S3 and returns its object key."""
+    key = f"post_media/{filename}"
+    try:
+        _client().put_object(
+            Bucket=settings.s3_bucket_name,
+            Key=key,
+            Body=file_bytes,
+            ContentType=content_type,
+        )
+    except (BotoCoreError, ClientError) as exc:
+        raise S3UploadError(f"Failed to upload post media to S3: {exc}") from exc
+
+    return key
+
+
+def delete_post_media(key: str) -> None:
+    try:
+        _client().delete_object(Bucket=settings.s3_bucket_name, Key=key)
+    except (BotoCoreError, ClientError):
+        pass  # best-effort cleanup; a stale S3 object shouldn't block deleting the DB row

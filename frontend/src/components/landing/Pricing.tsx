@@ -7,23 +7,29 @@ import { Eyebrow } from './Eyebrow'
 const TIERS = [
   {
     name: 'Starter',
-    price: '$29',
+    price: '$20',
     period: '/mo',
     description: 'For one site, getting the pipeline running end to end.',
-    features: ['1 connected site', 'Up to 30 posts / mo', '10 flyers / mo', 'Weekly scheduling', 'Click analytics'],
+    features: [
+      '1 connected site',
+      'Up to 30 posts / mo',
+      '10 flyers / mo',
+      'Schedule up to 7 days ahead',
+      'Click analytics',
+    ],
     cta: 'Get started',
     highlighted: false,
   },
   {
     name: 'Growth',
-    price: '$89',
+    price: '$49',
     period: '/mo',
     description: 'For running this across multiple sites on a real schedule.',
     features: [
       'Up to 3 connected sites',
       'Up to 120 posts / mo',
       '40 flyers / mo',
-      'Daily scheduling',
+      'Schedule up to 14 days ahead',
       'Trend-aware posting + A/B variants',
     ],
     cta: 'Get started',
@@ -31,14 +37,14 @@ const TIERS = [
   },
   {
     name: 'Agency',
-    price: '$249',
+    price: '$149',
     period: '/mo',
     description: 'Higher volume across many brands, with room to grow.',
     features: [
       'Up to 10 connected sites',
       'Up to 400 posts / mo',
       '150 flyers / mo',
-      'Team seats',
+      'Schedule up to 30 days ahead',
       'Priority support',
     ],
     cta: 'Get started',
@@ -102,8 +108,7 @@ export function Pricing() {
         </div>
 
         <p className="mx-auto mt-8 max-w-lg text-center text-[13px] text-text-muted">
-          Posts beyond your plan's monthly cap publish at $0.30/post. No overage on flyers or generation —
-          those never run out mid-month.
+          All plans include a 14-day free trial at Growth-level access — no card required to start.
         </p>
       </div>
     </section>

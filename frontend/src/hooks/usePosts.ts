@@ -91,6 +91,36 @@ export function useRepairPostLink() {
   })
 }
 
+export function useUploadPostMedia() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, file }: { id: string; file: File }) => {
+      const formData = new FormData()
+      formData.append('file', file)
+      const { data } = await api.post<Post>(`/posts/${id}/media`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      return data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['posts'] })
+    },
+  })
+}
+
+export function useDeletePostMedia() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { data } = await api.delete<Post>(`/posts/${id}/media`)
+      return data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['posts'] })
+    },
+  })
+}
+
 export interface SchedulePostInput {
   id: string
   platform_account_id: string

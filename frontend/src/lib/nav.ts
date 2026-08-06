@@ -1,6 +1,7 @@
 import {
   BarChart3,
   CalendarClock,
+  CreditCard,
   FileText,
   Globe,
   Image,
@@ -43,5 +44,11 @@ export const NAV_SECTIONS: { label: string; items: NavItem[] }[] = [
 ]
 
 export const SETTINGS_ITEM: NavItem = { label: 'Settings', path: '/settings', icon: Settings }
+export const BILLING_ITEM: NavItem = { label: 'Billing', path: '/billing', icon: CreditCard }
 
-export const ALL_NAV_ITEMS: NavItem[] = [OVERVIEW_ITEM, ...NAV_SECTIONS.flatMap((s) => s.items), SETTINGS_ITEM]
+export const ALL_NAV_ITEMS: NavItem[] = [
+  OVERVIEW_ITEM,
+  ...NAV_SECTIONS.flatMap((s) => s.items),
+  BILLING_ITEM,
+  SETTINGS_ITEM,
+]
