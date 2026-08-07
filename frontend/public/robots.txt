@@ -1,0 +1,20 @@
+User-agent: *
+Allow: /
+Disallow: /dashboard
+Disallow: /sites
+Disallow: /pages
+Disallow: /posts
+Disallow: /flyers
+Disallow: /analytics
+Disallow: /scheduler
+Disallow: /platforms
+Disallow: /settings
+Disallow: /billing
+Disallow: /admin
+Disallow: /login
+Disallow: /register
+Disallow: /forgot-password
+Disallow: /reset-password
+Disallow: /verify-email
+
+Sitemap: https://aitrafficengine.com/sitemap.xml

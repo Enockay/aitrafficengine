@@ -14,6 +14,7 @@ import AdminOverview from '@/pages/admin/Overview'
 import AdminSchedules from '@/pages/admin/Schedules'
 import AdminSites from '@/pages/admin/Sites'
 import AdminUsers from '@/pages/admin/Users'
+import About from '@/pages/About'
 import Analytics from '@/pages/Analytics'
 import Billing from '@/pages/Billing'
 import Dashboard from '@/pages/Dashboard'
@@ -25,12 +26,14 @@ import Login from '@/pages/Login'
 import Pages from '@/pages/Pages'
 import Platforms from '@/pages/Platforms'
 import Posts from '@/pages/Posts'
+import Pricing from '@/pages/Pricing'
 import Privacy from '@/pages/Privacy'
 import Register from '@/pages/Register'
 import ResetPassword from '@/pages/ResetPassword'
 import Scheduler from '@/pages/Scheduler'
 import Settings from '@/pages/Settings'
 import Sites from '@/pages/Sites'
+import Terms from '@/pages/Terms'
 import VerifyEmail from '@/pages/VerifyEmail'
 
 const queryClient = new QueryClient()
@@ -54,8 +57,11 @@ function App() {
         <AuthHydrator>
           <Routes>
             <Route path="/" element={<Landing />} />
+            <Route path="/pricing" element={<Pricing />} />
             <Route path="/docs" element={<Docs />} />
+            <Route path="/about" element={<About />} />
             <Route path="/privacy" element={<Privacy />} />
+            <Route path="/terms" element={<Terms />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/verify-email" element={<VerifyEmail />} />

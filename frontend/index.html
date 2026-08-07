@@ -10,7 +10,61 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
+
     <title>AI Traffic Engine — Turn content into organic traffic</title>
+    <meta
+      name="description"
+      content="Add your website once — AI crawls it, writes platform-native posts, and publishes to X, LinkedIn, Reddit, Tumblr, and Pinterest on a schedule. Every click tracked back to you. Zero ad spend."
+    />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://aitrafficengine.com/" />
+
+    <!-- Open Graph — read by Facebook, LinkedIn, Slack, Discord, WhatsApp, iMessage link previews.
+         This is a Vite SPA with no server-side rendering, so every route serves this same static
+         head — most of these crawlers never execute JS, so a per-route override in React
+         (see src/hooks/useSeo.ts) only helps Google's rendering pass, not raw link unfurls. Keep
+         these generic enough to be true for any page on the site. -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="AI Traffic Engine" />
+    <meta property="og:title" content="AI Traffic Engine — Turn content into organic traffic" />
+    <meta
+      property="og:description"
+      content="Add your website once — AI crawls it, writes platform-native posts, and publishes to X, LinkedIn, Reddit, Tumblr, and Pinterest on a schedule. Every click tracked back to you. Zero ad spend."
+    />
+    <meta property="og:url" content="https://aitrafficengine.com/" />
+    <meta property="og:image" content="https://aitrafficengine.com/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="AI Traffic Engine — put your website's traffic on autopilot" />
+    <meta property="og:locale" content="en_US" />
+
+    <!-- Twitter Card — Twitter/X ignores Open Graph image tags on its own and requires these. -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="AI Traffic Engine — Turn content into organic traffic" />
+    <meta
+      name="twitter:description"
+      content="Add your website once — AI crawls it, writes platform-native posts, and publishes to X, LinkedIn, Reddit, Tumblr, and Pinterest on a schedule. Every click tracked back to you."
+    />
+    <meta name="twitter:image" content="https://aitrafficengine.com/og-image.png" />
+
+    <meta name="theme-color" content="#0a0a0b" />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "AI Traffic Engine",
+        "url": "https://aitrafficengine.com/",
+        "description": "AI crawls your website, writes platform-native posts, and publishes them to X, LinkedIn, Reddit, Tumblr, and Pinterest on a schedule, with first-party click tracking back to your site.",
+        "applicationCategory": "BusinessApplication",
+        "operatingSystem": "Web",
+        "offers": [
+          { "@type": "Offer", "name": "Starter", "price": "20", "priceCurrency": "USD" },
+          { "@type": "Offer", "name": "Growth", "price": "49", "priceCurrency": "USD" },
+          { "@type": "Offer", "name": "Agency", "price": "149", "priceCurrency": "USD" }
+        ]
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

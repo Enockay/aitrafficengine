@@ -8,8 +8,16 @@ import { Integrations } from '@/components/landing/Integrations'
 import { Nav } from '@/components/landing/Nav'
 import { Pricing } from '@/components/landing/Pricing'
 import { Trust } from '@/components/landing/Trust'
+import { useSeo } from '@/hooks/useSeo'
 
 export default function Landing() {
+  useSeo({
+    title: 'AI Traffic Engine — Turn content into organic traffic',
+    description:
+      'Add your website once — AI crawls it, writes platform-native posts, and publishes to X, LinkedIn, Reddit, Tumblr, and Pinterest on a schedule. Every click tracked back to you. Zero ad spend.',
+    path: '/',
+  })
+
   return (
     <div className="relative min-h-screen bg-bg-primary text-text-primary antialiased">
       <div className="landing-atmosphere pointer-events-none fixed inset-0" />

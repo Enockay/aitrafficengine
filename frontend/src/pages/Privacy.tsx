@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 
 import { Footer } from '@/components/landing/Footer'
 import { Nav } from '@/components/landing/Nav'
+import { useSeo } from '@/hooks/useSeo'
 
 const LAST_UPDATED = 'August 6, 2026'
 const CONTACT_EMAIL = 'enockaymwema@gmail.com'
@@ -30,6 +31,12 @@ function Section({ id, title, children }: { id: string; title: string; children:
 }
 
 export default function Privacy() {
+  useSeo({
+    title: 'Privacy Policy — AI Traffic Engine',
+    description: 'What AI Traffic Engine actually collects and does with it — your account, connected platforms, generated content, and click analytics.',
+    path: '/privacy',
+  })
+
   return (
     <div className="relative min-h-screen bg-bg-primary text-text-primary antialiased">
       <div className="landing-atmosphere pointer-events-none fixed inset-0" />
@@ -60,7 +67,7 @@ export default function Privacy() {
             <Section id="overview" title="Overview">
               <p>
                 AI Traffic Engine crawls websites you own, uses AI to draft social posts and flyer images from
-                that content, and publishes them to X, LinkedIn, and Reddit on your behalf through each
+                that content, and publishes them to X, LinkedIn, Reddit, Tumblr, and Pinterest on your behalf through each
                 platform's official API. This policy covers the data that pipeline touches: your account, the
                 sites you add, the platform accounts you connect, and the posts and clicks that result.
               </p>
@@ -80,7 +87,7 @@ export default function Privacy() {
               </p>
               <p>
                 <span className="font-medium text-text-primary">Connected platform accounts</span> — when you
-                connect X, LinkedIn, or Reddit, we store the OAuth access and refresh tokens issued to us,
+                connect X, LinkedIn, Reddit, Tumblr, or Pinterest, we store the OAuth access and refresh tokens issued to us,
                 encrypted at rest, plus the account handle/name so we know what we're posting as. We never see
                 or store your platform password — authorization happens entirely on the platform's own login
                 page.
@@ -128,7 +135,7 @@ export default function Privacy() {
                   to generate flyer background images.
                 </li>
                 <li>
-                  <span className="font-medium text-text-primary">X, LinkedIn, and Reddit</span> — receive the
+                  <span className="font-medium text-text-primary">X, LinkedIn, Reddit, Tumblr, and Pinterest</span> — receive the
                   generated post content at publish time, through each platform's official API, using the OAuth
                   token you authorized.
                 </li>

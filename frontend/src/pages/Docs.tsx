@@ -4,8 +4,16 @@ import { Footer } from '@/components/landing/Footer'
 import { Nav } from '@/components/landing/Nav'
 import { ACCENTS, STEPS } from '@/components/landing/data'
 import { PLATFORMS } from '@/components/landing/PlatformIcons'
+import { useSeo } from '@/hooks/useSeo'
 
 export default function Docs() {
+  useSeo({
+    title: 'Getting started — AI Traffic Engine',
+    description:
+      'How the AI Traffic Engine pipeline works: crawl your site, generate platform-native posts, review, schedule, and publish to X, LinkedIn, Reddit, Tumblr, and Pinterest.',
+    path: '/docs',
+  })
+
   return (
     <div className="relative min-h-screen bg-bg-primary text-text-primary antialiased">
       <div className="landing-atmosphere pointer-events-none fixed inset-0" />
