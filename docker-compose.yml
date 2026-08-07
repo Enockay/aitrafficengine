@@ -11,17 +11,11 @@ services:
     env_file: .env
     depends_on:
       - redis
-    volumes:
-      - ./backend:/app
 
   frontend:
     build: ./frontend
     ports:
       - "25173:5173"
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-    command: npm run dev -- --host
 
   celery_worker:
     build: ./backend
@@ -29,8 +23,6 @@ services:
     env_file: .env
     depends_on:
       - redis
-    volumes:
-      - ./backend:/app
 
   celery_beat:
     build: ./backend
@@ -38,5 +30,3 @@ services:
     env_file: .env
     depends_on:
       - redis
-    volumes:
-      - ./backend:/app
