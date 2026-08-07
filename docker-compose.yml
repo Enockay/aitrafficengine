@@ -1,27 +1,15 @@
 services:
-  postgres:
-    image: postgres:15
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: ai_traffic_engine
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-
   redis:
     image: redis:7
     ports:
-      - "6379:6379"
+      - "26379:6379"
 
   backend:
     build: ./backend
     ports:
-      - "8000:8000"
+      - "28000:8000"
     env_file: .env
     depends_on:
-      - postgres
       - redis
     volumes:
       - ./backend:/app
@@ -29,7 +17,7 @@ services:
   frontend:
     build: ./frontend
     ports:
-      - "5173:5173"
+      - "25173:5173"
     volumes:
       - ./frontend:/app
       - /app/node_modules
@@ -40,7 +28,6 @@ services:
     command: celery -A celery_worker.celery_app worker --loglevel=info
     env_file: .env
     depends_on:
-      - postgres
       - redis
     volumes:
       - ./backend:/app
@@ -50,10 +37,6 @@ services:
     command: celery -A celery_worker.celery_app beat --loglevel=info
     env_file: .env
     depends_on:
-      - postgres
       - redis
     volumes:
       - ./backend:/app
-
-volumes:
-  postgres_data:
