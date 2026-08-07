@@ -1,3 +1,4 @@
+import os
 from functools import lru_cache
 from pathlib import Path
 
@@ -7,6 +8,12 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 # Resolved relative to this file, not the process cwd — pydantic-settings treats a
 # relative env_file as cwd-relative, which silently no-ops when run from backend/.
 ENV_FILE = Path(__file__).resolve().parents[2] / ".env"
+
+# Standard marker file present in every Docker container, absent on bare metal — used
+# to tell native local dev (Redis on the host via Homebrew, "localhost" is correct)
+# apart from any `docker compose`/Coolify deployment (Redis is a sibling container,
+# only reachable at hostname "redis").
+_IN_DOCKER = os.path.exists("/.dockerenv")
 
 
 class Settings(BaseSettings):
@@ -37,6 +44,18 @@ class Settings(BaseSettings):
 
     # Redis
     redis_url: str = "redis://localhost:6379/0"
+
+    # A misconfigured deploy (e.g. an env var copied straight from local dev, where
+    # Redis runs on the host) would otherwise fail with "Connection refused" forever —
+    # normalize it here instead of relying on every deploy target setting this
+    # correctly by hand. Covers redis_url, celery_broker_url, celery_result_backend
+    # (declared further down) in one validator since all three share this failure mode.
+    @field_validator("redis_url", "celery_broker_url", "celery_result_backend")
+    @classmethod
+    def _use_redis_service_hostname_in_docker(cls, value: str) -> str:
+        if _IN_DOCKER and ("localhost" in value or "127.0.0.1" in value):
+            return value.replace("localhost", "redis").replace("127.0.0.1", "redis")
+        return value
 
     # Security
     secret_key: str = "change-me-in-production"
