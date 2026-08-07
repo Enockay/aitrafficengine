@@ -2,12 +2,12 @@ services:
   redis:
     image: redis:7
     ports:
-      - "26379:6379"
+      - "6379:6379"
 
   backend:
     build: ./backend
     ports:
-      - "28000:8000"
+      - "8900:8000"
     env_file: .env
     depends_on:
       - redis
@@ -15,7 +15,7 @@ services:
   frontend:
     build: ./frontend
     ports:
-      - "25173:5173"
+      - "5273:5173"
 
   celery_worker:
     build: ./backend
