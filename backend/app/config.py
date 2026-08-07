@@ -1,7 +1,7 @@
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import Field
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Resolved relative to this file, not the process cwd — pydantic-settings treats a
@@ -22,6 +22,18 @@ class Settings(BaseSettings):
     # Database
     database_url: str = "postgresql+psycopg://postgres:postgres@localhost:5432/ai_traffic_engine"
     db_pool_size: int = 10
+
+    # requirements.txt only installs psycopg (v3) — a bare "postgresql://" DATABASE_URL
+    # (no driver suffix, e.g. from a managed-DB provider's connection string) makes
+    # SQLAlchemy default to the psycopg2 dialect instead, which isn't installed and
+    # fails at engine-creation time. Normalize it here so the driver is never
+    # ambiguous, regardless of what a deploy's DATABASE_URL env var actually says.
+    @field_validator("database_url")
+    @classmethod
+    def _use_psycopg3_driver(cls, value: str) -> str:
+        if value.startswith("postgresql://"):
+            return "postgresql+psycopg://" + value.removeprefix("postgresql://")
+        return value
 
     # Redis
     redis_url: str = "redis://localhost:6379/0"
