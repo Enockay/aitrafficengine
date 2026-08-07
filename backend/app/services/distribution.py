@@ -165,7 +165,26 @@ def execute_scheduled(db: Session, schedule: Schedule) -> None:
     """
     post = schedule.post
     platform_account = schedule.platform_account
-    user_id = post.page.site.user_id
+    user = post.page.site.user
+    user_id = user.id
+
+    if not user.is_active or user.deleted_at is not None:
+        # Suspending/deleting an account must actually stop its queued posts from
+        # going out — retrying wouldn't help here, so fail terminally instead of
+        # raising into the Celery retry path.
+        schedule.status = "failed"
+        schedule.last_error = "Account suspended"
+        post.status = "failed"
+        db.commit()
+        log_activity(
+            db,
+            user_id=user_id,
+            action="publish_failed",
+            entity_type="post",
+            entity_id=post.id,
+            details={"error": "Account suspended", "schedule_id": str(schedule.id)},
+        )
+        return
 
     try:
         result = _publish(db, platform_account, post)

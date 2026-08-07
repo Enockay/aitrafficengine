@@ -25,6 +25,7 @@ from app.schemas.site import (
 from app.services.activity_log import log_activity
 from app.services.crawler import CrawlError, apply_crawl_result, crawl_page as run_crawl, discover_site_urls
 from app.services.quotas import QuotaExceededError, check_can_add_site
+from app.services.site_stats import to_site_out as _to_site_out
 
 router = APIRouter(prefix="/sites", tags=["sites"])
 
@@ -36,41 +37,6 @@ def _get_owned_site(db: Session, site_id: uuid.UUID, user: User) -> Site:
     if not site:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Site not found")
     return site
-
-
-def _to_site_out(db: Session, site: Site) -> SiteOut:
-    pages_count = db.execute(
-        select(func.count(Page.id)).where(Page.site_id == site.id, Page.deleted_at.is_(None))
-    ).scalar_one()
-    posts_count = db.execute(
-        select(func.count(Post.id))
-        .join(Page, Post.page_id == Page.id)
-        .where(Page.site_id == site.id, Post.deleted_at.is_(None))
-    ).scalar_one()
-    total_clicks = db.execute(
-        select(func.coalesce(func.sum(Analytics.clicks), 0))
-        .join(Post, Analytics.post_id == Post.id)
-        .join(Page, Post.page_id == Page.id)
-        .where(Page.site_id == site.id)
-    ).scalar_one()
-    last_crawled_at = db.execute(
-        select(func.max(Page.last_crawled_at)).where(Page.site_id == site.id, Page.deleted_at.is_(None))
-    ).scalar_one()
-
-    return SiteOut(
-        id=site.id,
-        name=site.name,
-        domain=site.domain,
-        description=site.description,
-        is_active=site.is_active,
-        crawl_frequency=site.crawl_frequency,
-        pages_count=pages_count,
-        posts_count=posts_count,
-        total_clicks=int(total_clicks),
-        last_crawled_at=last_crawled_at,
-        created_at=site.created_at,
-        updated_at=site.updated_at,
-    )
 
 
 @router.get("", response_model=SiteListResponse)

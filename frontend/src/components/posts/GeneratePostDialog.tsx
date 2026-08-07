@@ -23,6 +23,8 @@ const PLATFORM_OPTIONS = [
   { value: 'twitter', label: 'X / Twitter' },
   { value: 'linkedin', label: 'LinkedIn' },
   { value: 'reddit', label: 'Reddit' },
+  { value: 'tumblr', label: 'Tumblr' },
+  { value: 'pinterest', label: 'Pinterest' },
 ]
 
 interface GeneratePostDialogProps {

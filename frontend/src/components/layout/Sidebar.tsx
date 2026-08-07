@@ -2,7 +2,8 @@ import { NavLink } from 'react-router-dom'
 import { LogOut, X, Zap } from 'lucide-react'
 
 import { useAuth } from '@/hooks/useAuth'
-import { BILLING_ITEM, NAV_SECTIONS, type NavItem, OVERVIEW_ITEM, SETTINGS_ITEM } from '@/lib/nav'
+import { ADMIN_PANEL_ITEM, BILLING_ITEM, NAV_SECTIONS, type NavItem, OVERVIEW_ITEM, SETTINGS_ITEM } from '@/lib/nav'
+import { isAdmin } from '@/lib/roles'
 import { cn, getInitials } from '@/lib/utils'
 
 function NavItemLink({ item, onNavigate }: { item: NavItem; onNavigate: () => void }) {
@@ -10,7 +11,7 @@ function NavItemLink({ item, onNavigate }: { item: NavItem; onNavigate: () => vo
   return (
     <NavLink
       to={item.path}
-      end={item.path === '/'}
+      end={item.path === '/' || item.path === '/admin'}
       onClick={onNavigate}
       className={({ isActive }) =>
         cn(
@@ -98,6 +99,12 @@ export function Sidebar({ open, onClose }: SidebarProps) {
             <NavItemLink item={BILLING_ITEM} onNavigate={onClose} />
             <NavItemLink item={SETTINGS_ITEM} onNavigate={onClose} />
           </div>
+
+          {isAdmin(user) && (
+            <div className="mt-5 space-y-1 border-t border-border-default pt-3">
+              <NavItemLink item={ADMIN_PANEL_ITEM} onNavigate={onClose} />
+            </div>
+          )}
         </nav>
 
         <div className="border-t border-border-default p-3">

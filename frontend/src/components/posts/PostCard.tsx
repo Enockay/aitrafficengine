@@ -15,6 +15,8 @@ const PLATFORM_LABEL: Record<string, string> = {
   twitter: 'X / Twitter',
   linkedin: 'LinkedIn',
   reddit: 'Reddit',
+  tumblr: 'Tumblr',
+  pinterest: 'Pinterest',
 }
 
 interface PostCardProps {

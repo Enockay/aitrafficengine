@@ -97,18 +97,18 @@ def _issue_tokens(response: Response, user: User) -> TokenResponse:
     )
 
 
-def _send_verification_email(user: User, raw_token: str) -> None:
+def _send_verification_email(db: Session, user: User, raw_token: str) -> None:
     try:
-        send_verification_email(user, raw_token)
+        send_verification_email(db, user, raw_token)
     except EmailNotConfigured as exc:
         logger.warning("Brevo not configured — skipping verification email for %s: %s", user.email, exc)
     except EmailSendError as exc:
         logger.error("Failed to send verification email to %s: %s", user.email, exc)
 
 
-def _send_password_reset_email(user: User, raw_token: str) -> None:
+def _send_password_reset_email(db: Session, user: User, raw_token: str) -> None:
     try:
-        send_password_reset_email(user, raw_token)
+        send_password_reset_email(db, user, raw_token)
     except EmailNotConfigured as exc:
         logger.warning("Brevo not configured — skipping password reset email for %s: %s", user.email, exc)
     except EmailSendError as exc:
@@ -134,7 +134,7 @@ def register(payload: UserRegister, request: Request, db: Session = Depends(get_
     log_activity(
         db, user_id=user.id, action="register", entity_type="user", entity_id=user.id, request=request
     )
-    _send_verification_email(user, raw_token)
+    _send_verification_email(db, user, raw_token)
     return RegisterResponse(
         message="Account created. Check your email to verify your address before logging in.",
         email=user.email,
@@ -223,7 +223,7 @@ def resend_verification(payload: ResendVerificationRequest, request: Request, db
         user.email_verification_token = hash_verification_token(raw_token)
         user.email_verification_sent_at = datetime.now(timezone.utc)
         db.commit()
-        _send_verification_email(user, raw_token)
+        _send_verification_email(db, user, raw_token)
 
     return MessageResponse(message=generic_message)
 
@@ -258,7 +258,7 @@ def forgot_password(payload: ForgotPasswordRequest, request: Request, db: Sessio
         user.password_reset_token = hash_verification_token(raw_token)
         user.password_reset_sent_at = datetime.now(timezone.utc)
         db.commit()
-        _send_password_reset_email(user, raw_token)
+        _send_password_reset_email(db, user, raw_token)
 
     return MessageResponse(message=generic_message)
 

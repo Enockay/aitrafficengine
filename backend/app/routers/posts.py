@@ -29,8 +29,8 @@ from app.services.distribution import DistributionError, compute_content_hash, r
 from app.services.distribution import publish_now as run_publish_now
 from app.services.distribution import schedule_post as run_schedule_post
 from app.services.media_upload import MediaValidationError, delete_post_media, save_post_media
+from app.services.media_urls import resolve_media_url
 from app.services.quotas import QuotaExceededError, check_can_create_post
-from app.services.s3_storage import generate_presigned_url
 from app.tasks.distribution import publish_scheduled_post
 
 router = APIRouter(prefix="/posts", tags=["posts"])
@@ -76,12 +76,7 @@ def _get_owned_page(db: Session, page_id: uuid.UUID, user: User) -> Page:
 
 
 def _to_out(post: Post) -> PostOut:
-    media_url = None
-    if post.media_path:
-        if post.media_path.startswith("s3:"):
-            media_url = generate_presigned_url(post.media_path.removeprefix("s3:"))
-        else:
-            media_url = f"{settings.backend_url}/media/{post.media_path}"
+    media_url = resolve_media_url(post.media_path)
     return PostOut(
         id=post.id,
         page_id=post.page_id,

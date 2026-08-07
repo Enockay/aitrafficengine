@@ -56,6 +56,8 @@ const PLATFORM_LABEL: Record<string, string> = {
   twitter: 'X / Twitter',
   linkedin: 'LinkedIn',
   reddit: 'Reddit',
+  tumblr: 'Tumblr',
+  pinterest: 'Pinterest',
 }
 
 const WEEKDAY_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
@@ -70,7 +72,8 @@ interface PostEditorDialogProps {
 export function PostEditorDialog({ post, pageTitle, pageUrl, onOpenChange }: PostEditorDialogProps) {
   const [tweets, setTweets] = useState<string[]>([''])
   const [bodyText, setBodyText] = useState('')
-  const [redditTitle, setRedditTitle] = useState('')
+  // Shared by every platform that edits as title + body: Reddit, Tumblr, Pinterest.
+  const [titleText, setTitleText] = useState('')
   const [hashtagsInput, setHashtagsInput] = useState('')
   const [trackedUrl, setTrackedUrl] = useState('')
   const [accountId, setAccountId] = useState('')
@@ -99,6 +102,9 @@ export function PostEditorDialog({ post, pageTitle, pageUrl, onOpenChange }: Pos
   const isTwitter = post?.platform === 'twitter'
   const isReddit = post?.platform === 'reddit'
   const isLinkedIn = post?.platform === 'linkedin'
+  const isTumblr = post?.platform === 'tumblr'
+  const isPinterest = post?.platform === 'pinterest'
+  const hasTitleField = isReddit || isTumblr || isPinterest
 
   useEffect(() => {
     if (post) {
@@ -107,7 +113,7 @@ export function PostEditorDialog({ post, pageTitle, pageUrl, onOpenChange }: Pos
       } else {
         setBodyText(post.body ?? '')
       }
-      setRedditTitle(post.platform === 'reddit' ? (post.title ?? '') : '')
+      setTitleText(['reddit', 'tumblr', 'pinterest'].includes(post.platform) ? (post.title ?? '') : '')
       setHashtagsInput((post.hashtags ?? []).join(', '))
       setTrackedUrl(post.tracked_url ?? '')
       setScheduledAt('')
@@ -165,9 +171,9 @@ export function PostEditorDialog({ post, pageTitle, pageUrl, onOpenChange }: Pos
     if (isTwitter) {
       body = joinTweets(tweets)
       title = tweets[0]?.trim().slice(0, 300) || null
-    } else if (isReddit) {
+    } else if (hasTitleField) {
       body = bodyText
-      title = redditTitle.trim().slice(0, 300) || null
+      title = titleText.trim().slice(0, 300) || null
     } else {
       body = bodyText
       title = bodyText.split('\n')[0]?.trim().slice(0, 300) || null
@@ -176,7 +182,7 @@ export function PostEditorDialog({ post, pageTitle, pageUrl, onOpenChange }: Pos
     try {
       await updatePost.mutateAsync({
         id: post!.id,
-        input: { title, body, hashtags: isReddit ? [] : hashtags, tracked_url: trackedUrl || null },
+        input: { title, body, hashtags: isReddit || isPinterest ? [] : hashtags, tracked_url: trackedUrl || null },
       })
       toast.success('Post saved')
     } catch {
@@ -408,13 +414,13 @@ export function PostEditorDialog({ post, pageTitle, pageUrl, onOpenChange }: Pos
               </div>
             )}
 
-            {isReddit && (
+            {hasTitleField && (
               <div className="space-y-2">
-                <Label htmlFor="reddit-title">Title</Label>
+                <Label htmlFor="post-title">Title</Label>
                 <Input
-                  id="reddit-title"
-                  value={redditTitle}
-                  onChange={(e) => setRedditTitle(e.target.value)}
+                  id="post-title"
+                  value={titleText}
+                  onChange={(e) => setTitleText(e.target.value)}
                   maxLength={300}
                 />
               </div>
@@ -423,7 +429,7 @@ export function PostEditorDialog({ post, pageTitle, pageUrl, onOpenChange }: Pos
             {!isTwitter && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="post-body">Body</Label>
+                  <Label htmlFor="post-body">{isPinterest ? 'Description' : 'Body'}</Label>
                   {isLinkedIn && (
                     <span
                       className={`text-caption ${bodyText.length > LINKEDIN_CHAR_LIMIT ? 'text-accent-red' : 'text-text-muted'}`}
@@ -442,7 +448,7 @@ export function PostEditorDialog({ post, pageTitle, pageUrl, onOpenChange }: Pos
               </div>
             )}
 
-            {!isReddit && (
+            {!isReddit && !isPinterest && (
               <div className="space-y-2">
                 <Label htmlFor="post-hashtags">Hashtags (comma separated)</Label>
                 <Input
@@ -467,6 +473,11 @@ export function PostEditorDialog({ post, pageTitle, pageUrl, onOpenChange }: Pos
 
             <div className="space-y-2">
               <Label>Media</Label>
+              {isPinterest && !mediaUrl && (
+                <p className="flex items-center gap-1.5 text-caption text-accent-yellow">
+                  <AlertTriangle size={12} /> Pinterest requires an image — this post can't be published without one.
+                </p>
+              )}
               {mediaUrl ? (
                 <div className="flex items-center gap-3 rounded-md border border-border-default bg-bg-surface p-2.5">
                   {mediaType === 'video' ? (
@@ -645,7 +656,7 @@ export function PostEditorDialog({ post, pageTitle, pageUrl, onOpenChange }: Pos
             <Label>Preview</Label>
             {isTwitter && <TweetThreadPreview tweets={tweets} hashtags={hashtags} />}
             {isLinkedIn && <LinkedInPreview body={bodyText} hashtags={hashtags} />}
-            {isReddit && <RedditPreview title={redditTitle} body={bodyText} />}
+            {isReddit && <RedditPreview title={titleText} body={bodyText} />}
           </div>
         </div>
 

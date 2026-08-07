@@ -14,3 +14,8 @@ class PlatformCredentialOut(BaseModel):
     source: str  # "database" | "environment" | "none"
     client_id_preview: str | None
     updated_at: datetime | None
+    is_enabled: bool
+
+
+class PlatformEnabledIn(BaseModel):
+    is_enabled: bool

@@ -20,11 +20,11 @@ def send_due_user_reports():
     `created_at <= cutoff` fallback for never-reported users prevents a brand-new
     signup from getting a report on the very next tick after registering.
     """
-    if not is_configured():
-        return
-
     db = SessionLocal()
     try:
+        if not is_configured(db):
+            return
+
         now = datetime.now(timezone.utc)
         cutoff = now - REPORT_INTERVAL
         due_users = db.execute(
@@ -42,7 +42,7 @@ def send_due_user_reports():
             since = user.last_report_sent_at or user.created_at
             try:
                 pdf_bytes = generate_user_report_pdf(db, user, since, now)
-                send_report_email(user, pdf_bytes, since.date(), now.date())
+                send_report_email(db, user, pdf_bytes, since.date(), now.date())
                 user.last_report_sent_at = now
                 db.commit()
             except EmailSendError as exc:

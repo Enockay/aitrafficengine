@@ -7,6 +7,7 @@ export interface Site {
   description: string | null
   is_active: boolean
   crawl_frequency: CrawlFrequency
+  image_url: string | null
   pages_count: number
   posts_count: number
   total_clicks: number

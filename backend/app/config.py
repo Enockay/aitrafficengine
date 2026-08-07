@@ -49,6 +49,10 @@ class Settings(BaseSettings):
     linkedin_client_secret: str | None = None
     reddit_client_id: str | None = None
     reddit_client_secret: str | None = None
+    tumblr_client_id: str | None = None
+    tumblr_client_secret: str | None = None
+    pinterest_client_id: str | None = None
+    pinterest_client_secret: str | None = None
     stability_api_key: str | None = None
     # Transactional email (registration verification). Leaving the key unset is fine in
     # dev — sends are skipped with a logged warning instead of failing registration.

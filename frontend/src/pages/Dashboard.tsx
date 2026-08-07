@@ -25,6 +25,12 @@ const PLATFORM_LABEL: Record<string, string> = {
   twitter: 'X / Twitter',
   linkedin: 'LinkedIn',
   reddit: 'Reddit',
+  // Tumblr and Pinterest intentionally omitted from this dashboard's traffic_by_day
+  // chart — that series is keyed by platform on the backend (services/dashboard) and
+  // extending it is a separate change; PLATFORM_LABEL here still covers them for the
+  // top-posts list below, which just needs a display label.
+  tumblr: 'Tumblr',
+  pinterest: 'Pinterest',
 }
 
 const STATUS_VARIANT: Record<string, 'success' | 'warning' | 'error' | 'info' | 'neutral'> = {

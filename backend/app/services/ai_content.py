@@ -10,6 +10,9 @@ settings = get_settings()
 TWEET_CHAR_LIMIT = 280
 LINKEDIN_CHAR_LIMIT = 3000
 REDDIT_TITLE_CHAR_LIMIT = 300
+TUMBLR_TITLE_CHAR_LIMIT = 300
+PINTEREST_TITLE_CHAR_LIMIT = 100
+PINTEREST_DESCRIPTION_CHAR_LIMIT = 500
 DEFAULT_TONE = "informative and engaging"
 
 MIN_TWEETS = 3
@@ -63,6 +66,30 @@ REDDIT_SCHEMA = {
         "body": {"type": "string"},
     },
     "required": ["title", "body"],
+    "additionalProperties": False,
+}
+
+TUMBLR_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "title": {"type": "string"},
+        "body": {"type": "string"},
+        "tags": {
+            "type": "array",
+            "items": {"type": "string"},
+        },
+    },
+    "required": ["title", "body", "tags"],
+    "additionalProperties": False,
+}
+
+PINTEREST_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "title": {"type": "string"},
+        "description": {"type": "string"},
+    },
+    "required": ["title", "description"],
     "additionalProperties": False,
 }
 
@@ -287,6 +314,142 @@ def generate_reddit_post(page: Page, tone: str = DEFAULT_TONE) -> dict:
     return {"title": title, "body": body}
 
 
+def _build_tumblr_prompt(page: Page, tone: str) -> str:
+    key_points = "\n".join(f"- {p}" for p in (page.key_points or [])[:8])
+    return f"""Write a Tumblr post (title + body) sharing the page below. Include the tracked URL naturally \
+within the body text.
+
+Page title: {page.title or "Untitled"}
+Summary: {page.summary or "No summary available."}
+Key points:
+{key_points or "(none extracted)"}
+Tracked URL: {page.url}
+
+Requirements:
+- Title: short and evocative, under 300 characters
+- Body: conversational, blog-post style — a bit more personal and detailed than a tweet, a bit looser than LinkedIn
+- Tone: {tone}, filtered through Tumblr's culture — informal, community-driven, not corporate-sounding
+- Suggest 3 to 5 relevant tags, without the # symbol
+"""
+
+
+def generate_tumblr_post(page: Page, tone: str = DEFAULT_TONE) -> dict:
+    """Generate a Tumblr post for a page using Claude. Raises ContentGenerationError on failure."""
+    client = _client()
+    prompt = _build_tumblr_prompt(page, tone)
+
+    try:
+        response = client.messages.create(
+            model=settings.claude_model,
+            max_tokens=1024,
+            thinking={"type": "disabled"},
+            output_config={
+                "effort": "low",
+                "format": {"type": "json_schema", "schema": TUMBLR_SCHEMA},
+            },
+            messages=[{"role": "user", "content": prompt}],
+        )
+    except anthropic.APIError as exc:
+        raise ContentGenerationError(f"Claude API error: {exc}") from exc
+
+    if response.stop_reason == "refusal":
+        raise ContentGenerationError("Content generation was declined by the model's safety filters.")
+
+    text_block = next((b for b in response.content if b.type == "text"), None)
+    if not text_block:
+        raise ContentGenerationError("No content returned by the model.")
+
+    try:
+        data = json.loads(text_block.text)
+    except json.JSONDecodeError as exc:
+        raise ContentGenerationError("Model returned invalid JSON.") from exc
+
+    title = (data.get("title") or "").strip()
+    body = (data.get("body") or "").strip()
+    if not title or not body:
+        raise ContentGenerationError("Model returned an incomplete post.")
+    if len(title) > TUMBLR_TITLE_CHAR_LIMIT:
+        raise ContentGenerationError(
+            f"Generated title is {len(title)} characters; Tumblr's limit is {TUMBLR_TITLE_CHAR_LIMIT}."
+        )
+
+    tags = [t.lstrip("#").strip() for t in data.get("tags", []) if t.strip()]
+
+    return {"title": title, "body": body, "tags": tags}
+
+
+def _build_pinterest_prompt(page: Page, tone: str) -> str:
+    key_points = "\n".join(f"- {p}" for p in (page.key_points or [])[:8])
+    return f"""Write a Pinterest pin title and description for the page below. The pin's image and destination \
+link are handled separately — focus purely on copy that makes someone want to click through and save it.
+
+Page title: {page.title or "Untitled"}
+Summary: {page.summary or "No summary available."}
+Key points:
+{key_points or "(none extracted)"}
+
+Requirements:
+- Title: punchy and specific, under 100 characters — this is what shows on the pin itself
+- Description: under 500 characters, keyword-rich (Pinterest is a visual search engine, not a feed — people find \
+this via search), written to make the value obvious at a glance
+- Tone: {tone}
+- No hashtags — Pinterest descriptions don't use them
+"""
+
+
+def generate_pinterest_post(page: Page, tone: str = DEFAULT_TONE) -> dict:
+    """Generate Pinterest pin copy for a page using Claude. Raises ContentGenerationError on failure.
+
+    Note this only produces the title/description text — the pin image itself must be
+    attached to the post separately (via the existing post-media upload flow) before
+    it can actually be published, since Pinterest has no text-only pin type.
+    """
+    client = _client()
+    prompt = _build_pinterest_prompt(page, tone)
+
+    try:
+        response = client.messages.create(
+            model=settings.claude_model,
+            max_tokens=512,
+            thinking={"type": "disabled"},
+            output_config={
+                "effort": "low",
+                "format": {"type": "json_schema", "schema": PINTEREST_SCHEMA},
+            },
+            messages=[{"role": "user", "content": prompt}],
+        )
+    except anthropic.APIError as exc:
+        raise ContentGenerationError(f"Claude API error: {exc}") from exc
+
+    if response.stop_reason == "refusal":
+        raise ContentGenerationError("Content generation was declined by the model's safety filters.")
+
+    text_block = next((b for b in response.content if b.type == "text"), None)
+    if not text_block:
+        raise ContentGenerationError("No content returned by the model.")
+
+    try:
+        data = json.loads(text_block.text)
+    except json.JSONDecodeError as exc:
+        raise ContentGenerationError("Model returned invalid JSON.") from exc
+
+    title = (data.get("title") or "").strip()
+    description = (data.get("description") or "").strip()
+    if not title or not description:
+        raise ContentGenerationError("Model returned an incomplete pin.")
+    if len(title) > PINTEREST_TITLE_CHAR_LIMIT:
+        raise ContentGenerationError(
+            f"Generated title is {len(title)} characters; Pinterest's limit is {PINTEREST_TITLE_CHAR_LIMIT}."
+        )
+    if len(description) > PINTEREST_DESCRIPTION_CHAR_LIMIT:
+        raise ContentGenerationError(
+            f"Generated description is {len(description)} characters; "
+            f"Pinterest's limit is {PINTEREST_DESCRIPTION_CHAR_LIMIT}."
+        )
+
+    return {"title": title, "description": description}
+
+
 def generate_post(
     page: Page,
     platform: str = "twitter",
@@ -299,4 +462,8 @@ def generate_post(
         return generate_linkedin_post(page, tone)
     if platform == "reddit":
         return generate_reddit_post(page, tone)
+    if platform == "tumblr":
+        return generate_tumblr_post(page, tone)
+    if platform == "pinterest":
+        return generate_pinterest_post(page, tone)
     raise ContentGenerationError(f"Post generation for platform '{platform}' is not implemented yet.")

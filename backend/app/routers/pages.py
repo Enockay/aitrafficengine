@@ -83,6 +83,16 @@ def _build_post_from_generation(db: Session, page: Page, platform: str, result: 
         title = result["title"][:300]
         body = result["body"]
         hashtags = []
+    elif platform == "tumblr":
+        content_type = "single"
+        title = result["title"][:300]
+        body = result["body"]
+        hashtags = result["tags"]
+    elif platform == "pinterest":
+        content_type = "single"
+        title = result["title"][:300]
+        body = result["description"]
+        hashtags = []
     else:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Unsupported platform: {platform}")
 

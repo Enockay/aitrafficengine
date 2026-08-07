@@ -12,6 +12,8 @@ _ENV_FALLBACK = {
     "twitter": (settings.twitter_client_id, settings.twitter_client_secret),
     "linkedin": (settings.linkedin_client_id, settings.linkedin_client_secret),
     "reddit": (settings.reddit_client_id, settings.reddit_client_secret),
+    "tumblr": (settings.tumblr_client_id, settings.tumblr_client_secret),
+    "pinterest": (settings.pinterest_client_id, settings.pinterest_client_secret),
 }
 
 

@@ -6,6 +6,7 @@ from app.config import get_settings
 from app.middleware.rate_limit import RateLimitMiddleware
 from app.routers import (
     activity_logs,
+    admin,
     analytics,
     auth,
     billing,
@@ -43,6 +44,7 @@ MEDIA_DIR.mkdir(parents=True, exist_ok=True)
 app.mount("/media", StaticFiles(directory=MEDIA_DIR), name="media")
 
 app.include_router(auth.router, prefix=settings.api_v1_prefix)
+app.include_router(admin.router, prefix=settings.api_v1_prefix)
 app.include_router(billing.router, prefix=settings.api_v1_prefix)
 app.include_router(sites.router, prefix=settings.api_v1_prefix)
 app.include_router(pages.router, prefix=settings.api_v1_prefix)

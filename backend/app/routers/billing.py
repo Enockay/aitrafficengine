@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime, timedelta, timezone
+from decimal import Decimal, InvalidOperation
 
 from fastapi import APIRouter, Depends, HTTPException, Header, Request, status
 from sqlalchemy.exc import IntegrityError
@@ -8,6 +9,7 @@ from sqlalchemy.orm import Session
 from app.config import get_settings
 from app.database import get_db
 from app.middleware.auth import get_current_user
+from app.models.payment import Payment
 from app.models.paystack_webhook_event import PaystackWebhookEvent
 from app.models.subscription import Subscription
 from app.models.user import User
@@ -82,6 +84,7 @@ def subscribe(
 
     try:
         data = initialize_transaction(
+            db,
             email=current_user.email,
             paystack_plan_code=plan.paystack_plan_code,
             callback_url=f"{settings.frontend_url}/billing",
@@ -102,7 +105,7 @@ async def paystack_webhook(
     x_paystack_signature: str | None = Header(default=None),
 ):
     raw_body = await request.body()
-    if not verify_webhook_signature(raw_body, x_paystack_signature):
+    if not verify_webhook_signature(db, raw_body, x_paystack_signature):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid signature")
 
     payload = await request.json()
@@ -128,6 +131,15 @@ async def paystack_webhook(
     return {"status": "ok"}
 
 
+def _parse_paystack_datetime(value: str | None, fallback: datetime) -> datetime:
+    if not value:
+        return fallback
+    try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return fallback
+
+
 def _activate_subscription(db: Session, data: dict) -> None:
     metadata = data.get("metadata") or {}
     user_id = metadata.get("user_id")
@@ -145,11 +157,39 @@ def _activate_subscription(db: Session, data: dict) -> None:
     subscription.status = "active"
     subscription.current_period_start = now
     subscription.current_period_end = now + timedelta(days=30)
+    subscription.cancel_at_period_end = False
     subscription.paystack_customer_code = (data.get("customer") or {}).get("customer_code")
     authorization = data.get("authorization") or {}
     if authorization.get("authorization_code"):
         subscription.paystack_authorization_code = authorization["authorization_code"]
-    db.commit()
+    db.flush()  # assigns subscription.id if newly created, needed for Payment FK
+
+    # Paystack sends amounts in the currency's smallest subunit (kobo for NGN, etc.) —
+    # convert to major unit once here so every downstream revenue query is a plain SUM.
+    amount_minor = data.get("amount")
+    try:
+        amount_major = (Decimal(amount_minor) / 100) if amount_minor is not None else Decimal("0")
+    except InvalidOperation:
+        amount_major = Decimal("0")
+
+    try:
+        db.add(
+            Payment(
+                user_id=uuid.UUID(user_id),
+                subscription_id=subscription.id,
+                plan_code=plan_code,
+                amount=amount_major,
+                currency=data.get("currency", "NGN"),
+                channel=authorization.get("channel"),
+                paystack_reference=data.get("reference", ""),
+                paid_at=_parse_paystack_datetime(data.get("paid_at"), now),
+            )
+        )
+        db.commit()
+    except IntegrityError:
+        # Same defensive pattern as the PaystackWebhookEvent insert above — a retried
+        # delivery with the same reference shouldn't double-record revenue.
+        db.rollback()
 
 
 def _cancel_subscription(db: Session, data: dict) -> None:

@@ -1,13 +1,13 @@
 import { type FormEvent, useState } from 'react'
 import { toast } from 'sonner'
 import { isAxiosError } from 'axios'
-import { Loader2, Pencil, Trash2 } from 'lucide-react'
+import { Eye, EyeOff, Loader2, Pencil, Trash2 } from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { useRemovePlatformCredentials, useSetPlatformCredentials } from '@/hooks/usePlatforms'
+import { useRemovePlatformCredentials, useSetPlatformCredentials, useSetPlatformEnabled } from '@/hooks/usePlatforms'
 import type { PlatformCredentialStatus } from '@/types/platform'
 
 const PLATFORM_META: Record<string, { label: string; glyph: string; color: string; helpUrl: string }> = {
@@ -29,6 +29,18 @@ const PLATFORM_META: Record<string, { label: string; glyph: string; color: strin
     color: '#FF4500',
     helpUrl: 'https://www.reddit.com/prefs/apps',
   },
+  tumblr: {
+    label: 'Tumblr',
+    glyph: 't',
+    color: '#36465D',
+    helpUrl: 'https://www.tumblr.com/oauth/apps',
+  },
+  pinterest: {
+    label: 'Pinterest',
+    glyph: 'P',
+    color: '#E60023',
+    helpUrl: 'https://developers.pinterest.com/apps',
+  },
 }
 
 interface PlatformCredentialCardProps {
@@ -49,6 +61,20 @@ export function PlatformCredentialCard({ status, canManage }: PlatformCredential
 
   const setCredentials = useSetPlatformCredentials()
   const removeCredentials = useRemovePlatformCredentials()
+  const setEnabled = useSetPlatformEnabled()
+
+  async function handleToggleEnabled() {
+    const next = !status.is_enabled
+    if (!next && !confirm(`Hide ${meta.label} from all users? They won't be able to see or connect it until you re-enable it.`)) {
+      return
+    }
+    try {
+      await setEnabled.mutateAsync({ platform: status.platform, is_enabled: next })
+      toast.success(next ? `${meta.label} is visible to users again` : `${meta.label} is now hidden from users`)
+    } catch {
+      toast.error('Failed to update visibility')
+    }
+  }
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault()
@@ -100,6 +126,23 @@ export function PlatformCredentialCard({ status, canManage }: PlatformCredential
           {status.configured ? (status.source === 'database' ? 'Configured' : 'Configured (env)') : 'Setup required'}
         </Badge>
       </div>
+
+      <button
+        type="button"
+        onClick={handleToggleEnabled}
+        disabled={setEnabled.isPending || !canManage}
+        className="mb-3 flex w-full items-center justify-between rounded-md border border-border-default bg-bg-surface px-3 py-2 text-body-sm transition-colors hover:border-accent-red disabled:cursor-default disabled:opacity-50 disabled:hover:border-border-default"
+      >
+        <span className="flex items-center gap-2 text-text-secondary">
+          {status.is_enabled ? <Eye size={14} /> : <EyeOff size={14} className="text-accent-yellow" />}
+          {status.is_enabled ? 'Visible to users' : 'Hidden from users'}
+        </span>
+        {setEnabled.isPending ? (
+          <Loader2 size={14} className="animate-spin text-text-muted" />
+        ) : (
+          canManage && <span className="text-caption text-accent-blue">{status.is_enabled ? 'Hide' : 'Unhide'}</span>
+        )}
+      </button>
 
       {!editing ? (
         <>

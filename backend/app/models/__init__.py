@@ -1,10 +1,14 @@
 from app.models.activity_log import ActivityLog
 from app.models.analytics import Analytics
+from app.models.brevo_config import BrevoConfig
 from app.models.flyer import Flyer
 from app.models.page import Page
+from app.models.payment import Payment
+from app.models.paystack_config import PaystackConfig
 from app.models.paystack_webhook_event import PaystackWebhookEvent
 from app.models.platform_account import PlatformAccount
 from app.models.platform_credential import PlatformCredential
+from app.models.platform_setting import PlatformSetting
 from app.models.post import Post
 from app.models.schedule import Schedule
 from app.models.site import Site
@@ -20,6 +24,7 @@ __all__ = [
     "Flyer",
     "PlatformAccount",
     "PlatformCredential",
+    "PlatformSetting",
     "Schedule",
     "Analytics",
     "ActivityLog",
@@ -27,4 +32,7 @@ __all__ = [
     "TrendFetchLog",
     "Subscription",
     "PaystackWebhookEvent",
+    "Payment",
+    "PaystackConfig",
+    "BrevoConfig",
 ]

@@ -5,21 +5,16 @@ import { toast } from 'sonner'
 import { isAxiosError } from 'axios'
 
 import { ActivityLogSection } from '@/components/settings/ActivityLogSection'
-import { PlatformCredentialCard } from '@/components/settings/PlatformCredentialCard'
-import { TrendsSection } from '@/components/settings/TrendsSection'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
 import { useSubscriptionQuery, useUsageQuery } from '@/hooks/useBilling'
 import { useAuth } from '@/hooks/useAuth'
-import { usePlatformCredentials } from '@/hooks/usePlatforms'
 import { COUNTRY_CODES } from '@/lib/countryCodes'
 
 export default function Settings() {
   const { user, updateProfile } = useAuth()
-  const isAdmin = user?.role === 'admin'
-  const { data: credentials, isLoading, isError } = usePlatformCredentials(isAdmin)
   const { data: subscription } = useSubscriptionQuery()
   const { data: usage } = useUsageQuery()
   const [copied, setCopied] = useState(false)
@@ -193,40 +188,6 @@ export default function Settings() {
           </button>
         </div>
       </div>
-
-      {isAdmin && (
-        <>
-          <div className="mb-3">
-            <p className="text-body-sm font-medium text-text-primary">Platform credentials</p>
-            <p className="text-caption text-text-muted">
-              The OAuth client ID/secret registered with each platform's developer portal — required before
-              anyone can connect an account from the Platforms page. Stored in the database, so changes take
-              effect immediately with no server restart.
-            </p>
-          </div>
-
-          {isLoading && (
-            <div className="flex justify-center py-12">
-              <Loader2 size={20} className="animate-spin text-text-muted" />
-            </div>
-          )}
-          {isError && (
-            <p className="py-12 text-center text-body-sm text-accent-red">Failed to load credentials.</p>
-          )}
-
-          {credentials && (
-            <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {credentials.map((status) => (
-                <PlatformCredentialCard key={status.platform} status={status} canManage={isAdmin} />
-              ))}
-            </div>
-          )}
-
-          <div className="mb-8">
-            <TrendsSection />
-          </div>
-        </>
-      )}
 
       <ActivityLogSection />
     </div>

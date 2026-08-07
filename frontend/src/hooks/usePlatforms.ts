@@ -14,7 +14,7 @@ export function usePlatformsQuery() {
   })
 }
 
-const SUPPORTED_PLATFORMS = ['twitter', 'linkedin', 'reddit']
+const SUPPORTED_PLATFORMS = ['twitter', 'linkedin', 'reddit', 'tumblr', 'pinterest']
 
 export function usePlatformCredentials(enabled: boolean = true) {
   return useQuery({
@@ -48,6 +48,20 @@ export function useSetPlatformCredentials() {
         client_id,
         client_secret,
       })
+      return data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['platform-credentials'] })
+      queryClient.invalidateQueries({ queryKey: ['platforms'] })
+    },
+  })
+}
+
+export function useSetPlatformEnabled() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ platform, is_enabled }: { platform: string; is_enabled: boolean }) => {
+      const { data } = await api.patch<PlatformCredentialStatus>(`/platforms/${platform}/enabled`, { is_enabled })
       return data
     },
     onSuccess: () => {

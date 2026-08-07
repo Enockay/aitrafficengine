@@ -21,4 +21,5 @@ export interface PlatformCredentialStatus {
   source: 'database' | 'environment' | 'none'
   client_id_preview: string | null
   updated_at: string | null
+  is_enabled: boolean
 }

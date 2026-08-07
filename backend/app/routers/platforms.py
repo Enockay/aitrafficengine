@@ -13,8 +13,8 @@ from app.models.platform_account import PlatformAccount
 from app.models.user import User
 from app.redis_client import get_redis
 from app.schemas.platform_account import ConnectUrlOut, PlatformAccountOut, PlatformStatusOut
-from app.schemas.platform_credential import PlatformCredentialIn, PlatformCredentialOut
-from app.services import platform_credentials
+from app.schemas.platform_credential import PlatformCredentialIn, PlatformCredentialOut, PlatformEnabledIn
+from app.services import platform_credentials, platform_settings
 from app.services.activity_log import log_activity
 from app.services.connectors import get_connector, supported_platforms
 from app.services.connectors.base import ConnectorAuthError, ConnectorNotConfigured
@@ -44,6 +44,10 @@ def list_platforms(current_user: User = Depends(get_current_user), db: Session =
 
     result = []
     for platform in supported_platforms():
+        # Admin-disabled platforms are left out entirely — not shown as "unavailable",
+        # just absent, so a tenant has no way to tell it exists at all.
+        if not platform_settings.is_enabled(db, platform):
+            continue
         connector = get_connector(platform)
         result.append(
             PlatformStatusOut(
@@ -64,6 +68,8 @@ def connect_platform(
     try:
         connector = get_connector(platform)
     except ValueError:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Unsupported platform")
+    if not platform_settings.is_enabled(db, platform):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Unsupported platform")
 
     try:
@@ -158,7 +164,11 @@ def get_platform_credentials(
 ):
     if platform not in supported_platforms():
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Unsupported platform")
-    return PlatformCredentialOut(platform=platform, **platform_credentials.get_status(db, platform))
+    return PlatformCredentialOut(
+        platform=platform,
+        is_enabled=platform_settings.is_enabled(db, platform),
+        **platform_credentials.get_status(db, platform),
+    )
 
 
 @router.put("/{platform}/credentials", response_model=PlatformCredentialOut)
@@ -181,7 +191,11 @@ def set_platform_credentials(
         details={"platform": platform},
         request=request,
     )
-    return PlatformCredentialOut(platform=platform, **platform_credentials.get_status(db, platform))
+    return PlatformCredentialOut(
+        platform=platform,
+        is_enabled=platform_settings.is_enabled(db, platform),
+        **platform_credentials.get_status(db, platform),
+    )
 
 
 @router.delete("/{platform}/credentials", response_model=PlatformCredentialOut)
@@ -205,7 +219,38 @@ def remove_platform_credentials(
             details={"platform": platform},
             request=request,
         )
-    return PlatformCredentialOut(platform=platform, **platform_credentials.get_status(db, platform))
+    return PlatformCredentialOut(
+        platform=platform,
+        is_enabled=platform_settings.is_enabled(db, platform),
+        **platform_credentials.get_status(db, platform),
+    )
+
+
+@router.patch("/{platform}/enabled", response_model=PlatformCredentialOut)
+def set_platform_enabled(
+    platform: str,
+    payload: PlatformEnabledIn,
+    request: Request,
+    current_user: User = Depends(require_role("admin")),
+    db: Session = Depends(get_db),
+):
+    if platform not in supported_platforms():
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Unsupported platform")
+    row = platform_settings.set_enabled(db, platform, payload.is_enabled)
+    log_activity(
+        db,
+        user_id=current_user.id,
+        action="admin_set_platform_enabled",
+        entity_type="platform_settings",
+        entity_id=row.id,
+        details={"platform": platform, "is_enabled": payload.is_enabled},
+        request=request,
+    )
+    return PlatformCredentialOut(
+        platform=platform,
+        is_enabled=payload.is_enabled,
+        **platform_credentials.get_status(db, platform),
+    )
 
 
 @router.delete("/{account_id}", status_code=status.HTTP_204_NO_CONTENT)

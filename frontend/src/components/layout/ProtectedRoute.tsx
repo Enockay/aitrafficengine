@@ -1,8 +1,10 @@
 import { Navigate, Outlet } from 'react-router-dom'
 
-import { PageLayout } from '@/components/layout/PageLayout'
 import { useAuth } from '@/hooks/useAuth'
 
+// Auth gate only — deliberately has no chrome of its own, so tenant routes
+// and admin routes can each mount their own layout (PageLayout / AdminLayout)
+// underneath it instead of sharing one sidebar.
 export function ProtectedRoute() {
   const { isAuthenticated, isLoading } = useAuth()
 
@@ -18,9 +20,5 @@ export function ProtectedRoute() {
     return <Navigate to="/login" replace />
   }
 
-  return (
-    <PageLayout>
-      <Outlet />
-    </PageLayout>
-  )
+  return <Outlet />
 }

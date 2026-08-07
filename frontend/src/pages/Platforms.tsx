@@ -36,6 +36,20 @@ const PLATFORM_META: Record<
     description: 'Submit self-posts to your Reddit profile.',
     envVars: 'REDDIT_CLIENT_ID, REDDIT_CLIENT_SECRET',
   },
+  tumblr: {
+    label: 'Tumblr',
+    glyph: 't',
+    color: '#36465D',
+    description: 'Publish posts to your primary Tumblr blog.',
+    envVars: 'TUMBLR_CLIENT_ID, TUMBLR_CLIENT_SECRET',
+  },
+  pinterest: {
+    label: 'Pinterest',
+    glyph: 'P',
+    color: '#E60023',
+    description: 'Pin generated flyers straight to your board.',
+    envVars: 'PINTEREST_CLIENT_ID, PINTEREST_CLIENT_SECRET',
+  },
 }
 
 function platformMeta(platform: string) {

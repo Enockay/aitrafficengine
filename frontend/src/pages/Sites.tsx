@@ -16,6 +16,27 @@ function formatDate(value: string | null) {
   return new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
+function SiteIcon({ imageUrl }: { imageUrl: string | null }) {
+  const [failed, setFailed] = useState(false)
+
+  if (imageUrl && !failed) {
+    return (
+      <img
+        src={imageUrl}
+        alt=""
+        onError={() => setFailed(true)}
+        className="h-8 w-8 shrink-0 rounded-md object-cover"
+      />
+    )
+  }
+
+  return (
+    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-bg-tertiary text-text-muted transition-colors group-hover:bg-accent-red/10 group-hover:text-accent-red">
+      <Globe size={14} />
+    </div>
+  )
+}
+
 export default function Sites() {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<'' | 'active' | 'inactive'>('')
@@ -179,9 +200,7 @@ export default function Sites() {
                 >
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2.5">
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-bg-tertiary text-text-muted transition-colors group-hover:bg-accent-red/10 group-hover:text-accent-red">
-                        <Globe size={14} />
-                      </div>
+                      <SiteIcon imageUrl={site.image_url} />
                       <div className="min-w-0">
                         <p className="truncate text-body-sm font-medium text-text-primary">{site.name}</p>
                         <p className="truncate text-caption text-text-muted">{site.domain}</p>

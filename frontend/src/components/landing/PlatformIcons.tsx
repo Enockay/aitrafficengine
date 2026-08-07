@@ -24,8 +24,26 @@ export function RedditIcon({ size = 16, className }: IconProps) {
   )
 }
 
+export function TumblrIcon({ size = 16, className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} className={className} fill="currentColor" aria-hidden="true">
+      <path d="M16.203 22.607c-1.02.469-2.101.696-3.19.696-4.51 0-6.03-3.146-6.03-5.712V9.855H4.71V7.107c2.606-.94 3.618-3.278 3.766-5.505.002-.036.032-.062.068-.062h3.244v5.148h3.688v3.167h-3.69v6.898c0 1.51.755 2.03 1.955 2.03.66 0 1.32-.198 1.822-.418l.64 3.242z" />
+    </svg>
+  )
+}
+
+export function PinterestIcon({ size = 16, className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} className={className} fill="currentColor" aria-hidden="true">
+      <path d="M12.017 0C5.396 0 0 5.396 0 12.017c0 5.081 3.163 9.422 7.627 11.174-.105-.949-.2-2.405.042-3.441.218-.937 1.407-5.965 1.407-5.965s-.359-.719-.359-1.782c0-1.668.967-2.914 2.171-2.914 1.024 0 1.518.769 1.518 1.69 0 1.03-.655 2.568-.994 3.995-.283 1.194.599 2.169 1.777 2.169 2.133 0 3.772-2.249 3.772-5.495 0-2.873-2.064-4.882-5.012-4.882-3.414 0-5.418 2.561-5.418 5.207 0 1.031.397 2.138.893 2.738a.36.36 0 0 1 .083.345c-.09.375-.293 1.194-.332 1.361-.052.219-.174.265-.4.16-1.495-.696-2.43-2.881-2.43-4.635 0-3.776 2.744-7.245 7.912-7.245 4.152 0 7.379 2.958 7.379 6.913 0 4.126-2.602 7.446-6.213 7.446-1.213 0-2.354-.63-2.744-1.375l-.746 2.845c-.27 1.038-.999 2.339-1.487 3.132 1.12.346 2.309.531 3.541.531 6.62 0 11.987-5.395 11.987-12.016C24.017 5.396 18.638 0 12.017 0z" />
+    </svg>
+  )
+}
+
 export const PLATFORMS = [
   { name: 'X / Twitter', Icon: XIcon },
   { name: 'LinkedIn', Icon: LinkedInIcon },
   { name: 'Reddit', Icon: RedditIcon },
+  { name: 'Tumblr', Icon: TumblrIcon },
+  { name: 'Pinterest', Icon: PinterestIcon },
 ]

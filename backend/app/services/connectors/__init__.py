@@ -1,12 +1,16 @@
 from app.services.connectors.base import PlatformConnector
 from app.services.connectors.linkedin import LinkedInConnector
+from app.services.connectors.pinterest import PinterestConnector
 from app.services.connectors.reddit import RedditConnector
+from app.services.connectors.tumblr import TumblrConnector
 from app.services.connectors.twitter import TwitterConnector
 
 _CONNECTORS: dict[str, PlatformConnector] = {
     "twitter": TwitterConnector(),
     "linkedin": LinkedInConnector(),
     "reddit": RedditConnector(),
+    "tumblr": TumblrConnector(),
+    "pinterest": PinterestConnector(),
 }
 
 

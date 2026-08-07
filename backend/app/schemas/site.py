@@ -44,6 +44,7 @@ class SiteOut(BaseModel):
     description: str | None
     is_active: bool
     crawl_frequency: str
+    image_url: str | None = None
     pages_count: int
     posts_count: int
     total_clicks: int
