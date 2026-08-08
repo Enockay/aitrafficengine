@@ -1,7 +1,6 @@
 import { type FormEvent, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
-import { isAxiosError } from 'axios'
 import { CheckCircle2, Loader2, LogIn, Mail, XCircle } from 'lucide-react'
 
 import { AuthLayout } from '@/components/layout/AuthLayout'
@@ -9,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useAuth } from '@/hooks/useAuth'
+import { getErrorMessage } from '@/lib/errors'
 
 type Status = 'verifying' | 'success' | 'error'
 
@@ -35,8 +35,7 @@ export default function VerifyEmail() {
         setTimeout(() => navigate('/dashboard'), 1200)
       })
       .catch((error) => {
-        const message = isAxiosError(error) ? error.response?.data?.detail : undefined
-        setErrorMessage(message ?? 'This verification link is invalid or has expired.')
+        setErrorMessage(getErrorMessage(error, 'This verification link is invalid or has expired.'))
         setStatus('error')
       })
   }, [token, verifyEmail, navigate])

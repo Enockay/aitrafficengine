@@ -1,12 +1,12 @@
 import { useSearchParams } from 'react-router-dom'
 import { useEffect } from 'react'
 import { toast } from 'sonner'
-import { isAxiosError } from 'axios'
 import { Check, Globe, Image as ImageIcon, Loader2, Send, ShieldCheck, Sparkles } from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { usePlansQuery, useSubscribe, useSubscriptionQuery, useUsageQuery, type Plan } from '@/hooks/useBilling'
+import { getErrorMessage } from '@/lib/errors'
 
 const RECOMMENDED_PLAN_CODE = 'growth'
 
@@ -154,8 +154,7 @@ export default function Billing() {
     try {
       await subscribe.mutateAsync(planCode)
     } catch (error) {
-      const message = isAxiosError(error) ? error.response?.data?.detail : undefined
-      toast.error(message ?? 'Failed to start checkout')
+      toast.error(getErrorMessage(error, 'Failed to start checkout'))
     }
   }
 

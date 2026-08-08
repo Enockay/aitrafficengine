@@ -1,6 +1,5 @@
 import { type FormEvent, useState } from 'react'
 import { toast } from 'sonner'
-import { isAxiosError } from 'axios'
 import { Eye, EyeOff, Loader2, Pencil, Trash2 } from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
@@ -8,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useRemovePlatformCredentials, useSetPlatformCredentials, useSetPlatformEnabled } from '@/hooks/usePlatforms'
+import { getErrorMessage } from '@/lib/errors'
 import type { PlatformCredentialStatus } from '@/types/platform'
 
 const PLATFORM_META: Record<string, { label: string; glyph: string; color: string; helpUrl: string }> = {
@@ -85,8 +85,7 @@ export function PlatformCredentialCard({ status, canManage }: PlatformCredential
       setClientSecret('')
       setEditing(false)
     } catch (error) {
-      const message = isAxiosError(error) ? error.response?.data?.detail : undefined
-      toast.error(message ?? 'Failed to save credentials')
+      toast.error(getErrorMessage(error, 'Failed to save credentials'))
     }
   }
 

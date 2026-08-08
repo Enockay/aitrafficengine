@@ -6,6 +6,7 @@ import { Toaster } from 'sonner'
 import { AdminLayout } from '@/components/layout/AdminLayout'
 import { PageLayout } from '@/components/layout/PageLayout'
 import { ProtectedRoute } from '@/components/layout/ProtectedRoute'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { useRealtimeEvents } from '@/hooks/useRealtimeEvents'
 import { useAuthStore } from '@/stores/authStore'
 import AdminBilling from '@/pages/admin/Billing'
@@ -52,49 +53,51 @@ function AuthHydrator({ children }: { children: React.ReactNode }) {
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <AuthHydrator>
-          <Routes>
-            <Route path="/" element={<Landing />} />
-            <Route path="/pricing" element={<Pricing />} />
-            <Route path="/docs" element={<Docs />} />
-            <Route path="/about" element={<About />} />
-            <Route path="/privacy" element={<Privacy />} />
-            <Route path="/terms" element={<Terms />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/verify-email" element={<VerifyEmail />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
-            <Route element={<ProtectedRoute />}>
-              <Route element={<PageLayout />}>
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/sites" element={<Sites />} />
-                <Route path="/pages" element={<Pages />} />
-                <Route path="/posts" element={<Posts />} />
-                <Route path="/flyers" element={<Flyers />} />
-                <Route path="/analytics" element={<Analytics />} />
-                <Route path="/scheduler" element={<Scheduler />} />
-                <Route path="/platforms" element={<Platforms />} />
-                <Route path="/settings" element={<Settings />} />
-                <Route path="/billing" element={<Billing />} />
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
+          <AuthHydrator>
+            <Routes>
+              <Route path="/" element={<Landing />} />
+              <Route path="/pricing" element={<Pricing />} />
+              <Route path="/docs" element={<Docs />} />
+              <Route path="/about" element={<About />} />
+              <Route path="/privacy" element={<Privacy />} />
+              <Route path="/terms" element={<Terms />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/verify-email" element={<VerifyEmail />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
+              <Route element={<ProtectedRoute />}>
+                <Route element={<PageLayout />}>
+                  <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/sites" element={<Sites />} />
+                  <Route path="/pages" element={<Pages />} />
+                  <Route path="/posts" element={<Posts />} />
+                  <Route path="/flyers" element={<Flyers />} />
+                  <Route path="/analytics" element={<Analytics />} />
+                  <Route path="/scheduler" element={<Scheduler />} />
+                  <Route path="/platforms" element={<Platforms />} />
+                  <Route path="/settings" element={<Settings />} />
+                  <Route path="/billing" element={<Billing />} />
+                </Route>
+                <Route element={<AdminLayout />}>
+                  <Route path="/admin" element={<AdminOverview />} />
+                  <Route path="/admin/users" element={<AdminUsers />} />
+                  <Route path="/admin/billing" element={<AdminBilling />} />
+                  <Route path="/admin/sites" element={<AdminSites />} />
+                  <Route path="/admin/schedules" element={<AdminSchedules />} />
+                  <Route path="/admin/integrations" element={<AdminIntegrations />} />
+                </Route>
               </Route>
-              <Route element={<AdminLayout />}>
-                <Route path="/admin" element={<AdminOverview />} />
-                <Route path="/admin/users" element={<AdminUsers />} />
-                <Route path="/admin/billing" element={<AdminBilling />} />
-                <Route path="/admin/sites" element={<AdminSites />} />
-                <Route path="/admin/schedules" element={<AdminSchedules />} />
-                <Route path="/admin/integrations" element={<AdminIntegrations />} />
-              </Route>
-            </Route>
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </AuthHydrator>
-        <Toaster theme="dark" position="bottom-right" />
-      </BrowserRouter>
-    </QueryClientProvider>
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </AuthHydrator>
+          <Toaster theme="dark" position="bottom-right" />
+        </BrowserRouter>
+      </QueryClientProvider>
+    </ErrorBoundary>
   )
 }
 

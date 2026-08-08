@@ -1,6 +1,5 @@
 import { type FormEvent, useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import { isAxiosError } from 'axios'
 import { Loader2 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
@@ -16,6 +15,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
 import { useCreateSite, useUpdateSite } from '@/hooks/useSites'
+import { getErrorMessage } from '@/lib/errors'
 import type { CrawlFrequency, Site } from '@/types/site'
 
 interface SiteFormDialogProps {
@@ -60,8 +60,7 @@ export function SiteFormDialog({ open, onOpenChange, site }: SiteFormDialogProps
       }
       onOpenChange(false)
     } catch (error) {
-      const message = isAxiosError(error) ? error.response?.data?.detail : undefined
-      toast.error(message ?? 'Something went wrong')
+      toast.error(getErrorMessage(error, 'Something went wrong'))
     }
   }
 

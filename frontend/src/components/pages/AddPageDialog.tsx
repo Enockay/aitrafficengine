@@ -1,6 +1,5 @@
 import { type FormEvent, useState } from 'react'
 import { toast } from 'sonner'
-import { isAxiosError } from 'axios'
 import { Loader2 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
@@ -16,6 +15,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
 import { useCreatePage } from '@/hooks/usePages'
+import { getErrorMessage } from '@/lib/errors'
 import type { Site } from '@/types/site'
 
 interface AddPageDialogProps {
@@ -42,8 +42,7 @@ export function AddPageDialog({ open, onOpenChange, sites, defaultSiteId }: AddP
       setUrl('')
       onOpenChange(false)
     } catch (error) {
-      const message = isAxiosError(error) ? error.response?.data?.detail : undefined
-      toast.error(message ?? 'Failed to add page')
+      toast.error(getErrorMessage(error, 'Failed to add page'))
     }
   }
 

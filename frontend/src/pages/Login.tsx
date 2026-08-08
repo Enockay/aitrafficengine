@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useAuth } from '@/hooks/useAuth'
+import { getErrorMessage } from '@/lib/errors'
 
 export default function Login() {
   const navigate = useNavigate()
@@ -32,8 +33,7 @@ export default function Login() {
         setNeedsVerification(true)
         toast.error('Please verify your email before logging in.')
       } else {
-        const message = isAxiosError(error) ? error.response?.data?.detail : undefined
-        toast.error(message ?? 'Login failed')
+        toast.error(getErrorMessage(error, 'Login failed'))
       }
     } finally {
       setIsSubmitting(false)

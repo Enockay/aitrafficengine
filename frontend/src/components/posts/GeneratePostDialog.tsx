@@ -1,6 +1,5 @@
 import { type FormEvent, useState } from 'react'
 import { toast } from 'sonner'
-import { isAxiosError } from 'axios'
 import { Loader2, Sparkles } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
@@ -16,6 +15,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
 import { useGeneratePosts, useGenerateVariants } from '@/hooks/usePages'
+import { getErrorMessage } from '@/lib/errors'
 import type { Page } from '@/types/page'
 import type { Post } from '@/types/post'
 
@@ -71,8 +71,7 @@ export function GeneratePostDialog({
       setAbTest(false)
       setVariantCount(2)
     } catch (error) {
-      const message = isAxiosError(error) ? error.response?.data?.detail : undefined
-      toast.error(message ?? 'Failed to generate post')
+      toast.error(getErrorMessage(error, 'Failed to generate post'))
     }
   }
 

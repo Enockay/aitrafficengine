@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Check, Copy, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
-import { isAxiosError } from 'axios'
 
 import { ActivityLogSection } from '@/components/settings/ActivityLogSection'
 import { Button } from '@/components/ui/button'
@@ -12,6 +11,7 @@ import { Select } from '@/components/ui/select'
 import { useSubscriptionQuery, useUsageQuery } from '@/hooks/useBilling'
 import { useAuth } from '@/hooks/useAuth'
 import { COUNTRY_CODES } from '@/lib/countryCodes'
+import { getErrorMessage } from '@/lib/errors'
 
 export default function Settings() {
   const { user, updateProfile } = useAuth()
@@ -55,9 +55,7 @@ export default function Settings() {
       })
       toast.success('Profile updated.')
     } catch (error) {
-      const detail = isAxiosError(error) ? error.response?.data?.detail : undefined
-      const message = Array.isArray(detail) ? detail[0]?.msg : detail
-      toast.error(message ?? 'Failed to update profile')
+      toast.error(getErrorMessage(error, 'Failed to update profile'))
     } finally {
       setIsSaving(false)
     }

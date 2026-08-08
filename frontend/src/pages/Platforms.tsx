@@ -1,7 +1,6 @@
 import { useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
-import { isAxiosError } from 'axios'
 import { KeyRound, Loader2, Plus, Trash2, User } from 'lucide-react'
 
 import { PageIntro } from '@/components/layout/PageIntro'
@@ -9,6 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/hooks/useAuth'
 import { useConnectPlatform, useDisconnectPlatform, usePlatformsQuery } from '@/hooks/usePlatforms'
+import { getErrorMessage } from '@/lib/errors'
 import type { PlatformAccount } from '@/types/platform'
 
 const PLATFORM_META: Record<
@@ -93,8 +93,7 @@ export default function Platforms() {
       const { authorize_url } = await connectPlatform.mutateAsync(platform)
       window.location.href = authorize_url
     } catch (error) {
-      const message = isAxiosError(error) ? error.response?.data?.detail : undefined
-      toast.error(message ?? `${platformMeta(platform).label} isn't configured yet`)
+      toast.error(getErrorMessage(error, `${platformMeta(platform).label} isn't configured yet`))
     }
   }
 

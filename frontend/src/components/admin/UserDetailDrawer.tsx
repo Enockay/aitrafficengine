@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { isAxiosError } from 'axios'
 import { Activity, FileText, Globe, Loader2, ShieldAlert, X } from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
@@ -14,6 +13,7 @@ import {
   useSoftDeleteUser,
   type AdminUser,
 } from '@/hooks/useAdminUsers'
+import { getErrorMessage } from '@/lib/errors'
 import { getInitials } from '@/lib/utils'
 
 const PLAN_CODES = ['starter', 'growth', 'agency']
@@ -52,8 +52,7 @@ export function UserDetailDrawer({ user, onClose }: { user: AdminUser; onClose: 
       await setStatus.mutateAsync({ id: user.id, is_active: !user.is_active })
       toast.success(user.is_active ? 'User suspended' : 'User reactivated')
     } catch (error) {
-      const message = isAxiosError(error) ? error.response?.data?.detail : undefined
-      toast.error(message ?? 'Failed to update status')
+      toast.error(getErrorMessage(error, 'Failed to update status'))
     }
   }
 
@@ -62,8 +61,7 @@ export function UserDetailDrawer({ user, onClose }: { user: AdminUser; onClose: 
       await setRole.mutateAsync({ id: user.id, role })
       toast.success(`Role changed to ${role}`)
     } catch (error) {
-      const message = isAxiosError(error) ? error.response?.data?.detail : undefined
-      toast.error(message ?? 'Failed to change role')
+      toast.error(getErrorMessage(error, 'Failed to change role'))
     }
   }
 
@@ -72,8 +70,7 @@ export function UserDetailDrawer({ user, onClose }: { user: AdminUser; onClose: 
       await overridePlan.mutateAsync({ id: user.id, plan_code: planCode, status: 'active' })
       toast.success(`Plan set to ${planCode}`)
     } catch (error) {
-      const message = isAxiosError(error) ? error.response?.data?.detail : undefined
-      toast.error(message ?? 'Failed to override plan')
+      toast.error(getErrorMessage(error, 'Failed to override plan'))
     }
   }
 
@@ -84,8 +81,7 @@ export function UserDetailDrawer({ user, onClose }: { user: AdminUser; onClose: 
       toast.success('User deleted')
       onClose()
     } catch (error) {
-      const message = isAxiosError(error) ? error.response?.data?.detail : undefined
-      toast.error(message ?? 'Failed to delete user')
+      toast.error(getErrorMessage(error, 'Failed to delete user'))
     }
   }
 

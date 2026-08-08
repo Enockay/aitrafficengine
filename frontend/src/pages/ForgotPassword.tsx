@@ -1,7 +1,6 @@
 import { type FormEvent, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
-import { isAxiosError } from 'axios'
 import { Loader2, LogIn, Mail, MailCheck } from 'lucide-react'
 
 import { AuthLayout } from '@/components/layout/AuthLayout'
@@ -9,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useAuth } from '@/hooks/useAuth'
+import { getErrorMessage } from '@/lib/errors'
 
 export default function ForgotPassword() {
   const { forgotPassword } = useAuth()
@@ -23,9 +23,7 @@ export default function ForgotPassword() {
       await forgotPassword(email)
       setSubmitted(true)
     } catch (error) {
-      const detail = isAxiosError(error) ? error.response?.data?.detail : undefined
-      const message = Array.isArray(detail) ? detail[0]?.msg : detail
-      toast.error(message ?? 'Something went wrong')
+      toast.error(getErrorMessage(error, 'Something went wrong'))
     } finally {
       setIsSubmitting(false)
     }

@@ -1,7 +1,6 @@
 import { type FormEvent, useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
-import { isAxiosError } from 'axios'
 import { Building2, Eye, EyeOff, Gift, Loader2, Lock, LogIn, Mail, MailCheck, Phone, User } from 'lucide-react'
 
 import { AuthLayout } from '@/components/layout/AuthLayout'
@@ -11,6 +10,7 @@ import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
 import { useAuth } from '@/hooks/useAuth'
 import { COUNTRY_CODES } from '@/lib/countryCodes'
+import { getErrorMessage } from '@/lib/errors'
 import { getClientTimezone } from '@/lib/timezone'
 
 const RESEND_COOLDOWN_SECONDS = 30
@@ -60,9 +60,7 @@ export default function Register() {
       })
       setRegistered(true)
     } catch (error) {
-      const detail = isAxiosError(error) ? error.response?.data?.detail : undefined
-      const message = Array.isArray(detail) ? detail[0]?.msg : detail
-      toast.error(message ?? 'Registration failed')
+      toast.error(getErrorMessage(error, 'Registration failed'))
     } finally {
       setIsSubmitting(false)
     }

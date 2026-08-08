@@ -1,6 +1,5 @@
 import { type FormEvent, useState } from 'react'
 import { toast } from 'sonner'
-import { isAxiosError } from 'axios'
 import { Check, Circle, Loader2, Sparkles, Wand2 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
@@ -16,6 +15,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
 import { useGenerateFlyer, useGenerateFlyerPrompt } from '@/hooks/useFlyers'
+import { getErrorMessage } from '@/lib/errors'
 import type { Page } from '@/types/page'
 import type { Flyer } from '@/types/flyer'
 
@@ -99,8 +99,7 @@ export function GenerateFlyerDialog({
       onGenerated(flyer)
     } catch (error) {
       setStage('idle')
-      const message = isAxiosError(error) ? error.response?.data?.detail : undefined
-      toast.error(message ?? 'Failed to generate flyer')
+      toast.error(getErrorMessage(error, 'Failed to generate flyer'))
     }
   }
 

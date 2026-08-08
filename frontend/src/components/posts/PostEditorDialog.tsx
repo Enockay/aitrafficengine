@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState, type ChangeEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
-import { isAxiosError } from 'axios'
 import {
   AlertTriangle,
   CheckCircle2,
@@ -38,6 +37,7 @@ import {
   useUploadPostMedia,
   useVariantGroupQuery,
 } from '@/hooks/usePosts'
+import { getErrorMessage } from '@/lib/errors'
 import { nextOccurrence, toDatetimeLocalValue } from '@/lib/optimalTime'
 import { joinTweets, splitTweets, type Post } from '@/types/post'
 
@@ -209,8 +209,7 @@ export function PostEditorDialog({ post, pageTitle, pageUrl, onOpenChange }: Pos
       }
       toast.success('Tracked link fixed')
     } catch (error) {
-      const message = isAxiosError(error) ? error.response?.data?.detail : undefined
-      toast.error(message ?? 'Failed to fix link')
+      toast.error(getErrorMessage(error, 'Failed to fix link'))
     }
   }
 
@@ -224,8 +223,7 @@ export function PostEditorDialog({ post, pageTitle, pageUrl, onOpenChange }: Pos
       setMediaType(updated.media_type ?? null)
       toast.success('Media uploaded')
     } catch (error) {
-      const message = isAxiosError(error) ? error.response?.data?.detail : undefined
-      toast.error(message ?? 'Failed to upload media')
+      toast.error(getErrorMessage(error, 'Failed to upload media'))
     }
   }
 
@@ -268,8 +266,7 @@ export function PostEditorDialog({ post, pageTitle, pageUrl, onOpenChange }: Pos
       })
       toast.success('Post scheduled')
     } catch (error) {
-      const message = isAxiosError(error) ? error.response?.data?.detail : undefined
-      toast.error(message ?? 'Failed to schedule post')
+      toast.error(getErrorMessage(error, 'Failed to schedule post'))
     }
   }
 
@@ -282,8 +279,7 @@ export function PostEditorDialog({ post, pageTitle, pageUrl, onOpenChange }: Pos
       await publishPost.mutateAsync({ id: post!.id, platform_account_id: accountId })
       toast.success('Post published')
     } catch (error) {
-      const message = isAxiosError(error) ? error.response?.data?.detail : undefined
-      toast.error(message ?? 'Failed to publish post')
+      toast.error(getErrorMessage(error, 'Failed to publish post'))
     }
   }
 

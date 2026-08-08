@@ -17,7 +17,9 @@ export function Logo({ className, expanded = false }: { className?: string; expa
           )}
         </span>
         {expanded && (
-          <span className="text-[11px] leading-tight text-text-muted">Auto-managed traffic, powered by AI</span>
+          <span className="hidden text-[11px] leading-tight text-text-muted sm:block">
+            Auto-managed traffic, powered by AI
+          </span>
         )}
       </div>
     </Link>

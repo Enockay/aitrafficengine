@@ -1,7 +1,6 @@
 import { type FormEvent, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
-import { isAxiosError } from 'axios'
 import { CheckCircle2, Eye, EyeOff, Loader2, Lock, LogIn, XCircle } from 'lucide-react'
 
 import { AuthLayout } from '@/components/layout/AuthLayout'
@@ -9,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useAuth } from '@/hooks/useAuth'
+import { getErrorMessage } from '@/lib/errors'
 
 export default function ResetPassword() {
   const navigate = useNavigate()
@@ -36,9 +36,7 @@ export default function ResetPassword() {
       setStatus('success')
       setTimeout(() => navigate('/login'), 1500)
     } catch (error) {
-      const detail = isAxiosError(error) ? error.response?.data?.detail : undefined
-      const message = Array.isArray(detail) ? detail[0]?.msg : detail
-      setErrorMessage(message ?? 'This reset link is invalid or has expired.')
+      setErrorMessage(getErrorMessage(error, 'This reset link is invalid or has expired.'))
       setStatus('error')
     } finally {
       setIsSubmitting(false)
