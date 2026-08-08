@@ -64,3 +64,11 @@ app.include_router(redirect.router)
 @app.get("/health")
 def health_check():
     return {"status": "ok", "app": settings.app_name}
+
+
+# Coolify's Traefik probes "/" by default to decide whether a container is healthy
+# enough to register behind its domain — without this, every deploy 404s that probe
+# and the container never enters the routing pool, surfacing as "no available server".
+@app.get("/")
+def root():
+    return {"status": "ok", "app": settings.app_name}
