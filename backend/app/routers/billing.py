@@ -87,6 +87,7 @@ def subscribe(
             db,
             email=current_user.email,
             paystack_plan_code=plan.paystack_plan_code,
+            amount_kobo=plan.price_usd * 100,
             callback_url=f"{settings.frontend_url}/billing",
             metadata={"user_id": str(current_user.id), "plan_code": plan.code},
         )

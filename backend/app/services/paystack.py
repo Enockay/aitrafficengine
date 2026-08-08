@@ -32,7 +32,9 @@ def _headers(db: Session) -> dict:
     return {"Authorization": f"Bearer {_secret_key(db)}", "Content-Type": "application/json"}
 
 
-def initialize_transaction(db: Session, email: str, paystack_plan_code: str, callback_url: str, metadata: dict) -> dict:
+def initialize_transaction(
+    db: Session, email: str, paystack_plan_code: str, amount_kobo: int, callback_url: str, metadata: dict
+) -> dict:
     """Starts a Paystack checkout for a subscription plan. Returns Paystack's response
     data (`authorization_url`, `access_code`, `reference`) for the frontend to redirect
     the user to.
@@ -46,6 +48,11 @@ def initialize_transaction(db: Session, email: str, paystack_plan_code: str, cal
                 headers=headers,
                 json={
                     "email": email,
+                    # Paystack validates `amount` on every initialize call — it's not
+                    # inferred from `plan` alone, despite the plan already carrying a
+                    # price. Must match the plan's configured amount or Paystack rejects
+                    # the mismatch.
+                    "amount": amount_kobo,
                     "plan": paystack_plan_code,
                     "callback_url": callback_url,
                     "metadata": metadata,

@@ -155,7 +155,7 @@ export function Hero() {
         </div>
       </div>
 
-      <div className="relative mx-auto max-w-5xl px-6 pb-24 pt-12 md:pb-32 md:pt-16">
+      <div className="relative mx-auto max-w-6xl px-6 pb-24 pt-12 md:pb-32 md:pt-16">
         <DashboardPreview />
       </div>
     </section>

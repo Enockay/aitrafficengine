@@ -50,7 +50,7 @@ PLANS: dict[str, Plan] = {
 }
 
 TRIAL_PLAN_CODE = "growth"
-TRIAL_DAYS = 14
+TRIAL_DAYS = 5
 
 # All 3 tiers currently get access to all 3 supported platforms (Twitter, LinkedIn,
 # Reddit) — there's no per-tier accounts-linked cap in practice since that's the entire
