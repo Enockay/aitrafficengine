@@ -20,6 +20,7 @@ services:
       - "5273:5173"
     expose:
       - "5173"
+    env_file: .env
 
   celery_worker:
     build: ./backend
