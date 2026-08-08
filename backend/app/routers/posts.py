@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, UploadFile, status
 from pydantic import BaseModel
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
 from app.config import get_settings
@@ -13,6 +13,7 @@ from app.models.analytics import Analytics
 from app.models.page import Page
 from app.models.platform_account import PlatformAccount
 from app.models.post import Post
+from app.models.schedule import Schedule
 from app.models.site import Site
 from app.models.user import User
 from app.schemas.post import (
@@ -323,6 +324,10 @@ def delete_post(
     db: Session = Depends(get_db),
 ):
     post = _get_owned_post(db, post_id, current_user)
+    # A pending schedule outlives a soft-deleted post otherwise — the Celery task still
+    # fires at scheduled_at and the Scheduler page keeps showing an entry the Posts page
+    # already hides, since /posts filters deleted_at but /schedules doesn't.
+    db.execute(delete(Schedule).where(Schedule.post_id == post.id, Schedule.status == "pending"))
     post.deleted_at = datetime.now(timezone.utc)
     db.commit()
     log_activity(

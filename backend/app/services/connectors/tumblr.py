@@ -143,8 +143,14 @@ class TumblrConnector(PlatformConnector):
         blog_identifier = f"{account.account_handle}.tumblr.com"
         url = f"https://api.tumblr.com/v2/blog/{blog_identifier}/posts"
         headers = {"Authorization": f"Bearer {access_token}", "Content-Type": "application/json"}
+        # Tumblr's posts endpoint takes tags as a single comma-separated string, not a
+        # JSON array — sending an array is what was producing the opaque "Posting
+        # failed" 400 (code 8001) on every publish attempt.
+        body_payload: dict = {"content": content}
+        if post.hashtags:
+            body_payload["tags"] = ",".join(post.hashtags)
         with httpx.Client(timeout=15) as client:
-            resp = client.post(url, headers=headers, json={"content": content, "tags": post.hashtags or []})
+            resp = client.post(url, headers=headers, json=body_payload)
         if resp.status_code >= 400:
             raise ConnectorPublishError(f"Tumblr publish failed: {resp.text}")
 

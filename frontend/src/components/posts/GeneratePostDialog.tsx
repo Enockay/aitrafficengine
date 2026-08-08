@@ -1,4 +1,5 @@
-import { type FormEvent, useState } from 'react'
+import { type FormEvent, useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Loader2, Sparkles } from 'lucide-react'
 
@@ -15,17 +16,18 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
 import { useGeneratePosts, useGenerateVariants } from '@/hooks/usePages'
+import { usePlatformsQuery } from '@/hooks/usePlatforms'
 import { getErrorMessage } from '@/lib/errors'
 import type { Page } from '@/types/page'
 import type { Post } from '@/types/post'
 
-const PLATFORM_OPTIONS = [
-  { value: 'twitter', label: 'X / Twitter' },
-  { value: 'linkedin', label: 'LinkedIn' },
-  { value: 'reddit', label: 'Reddit' },
-  { value: 'tumblr', label: 'Tumblr' },
-  { value: 'pinterest', label: 'Pinterest' },
-]
+const PLATFORM_LABELS: Record<string, string> = {
+  twitter: 'X / Twitter',
+  linkedin: 'LinkedIn',
+  reddit: 'Reddit',
+  tumblr: 'Tumblr',
+  pinterest: 'Pinterest',
+}
 
 interface GeneratePostDialogProps {
   open: boolean
@@ -43,15 +45,26 @@ export function GeneratePostDialog({
   onGenerated,
 }: GeneratePostDialogProps) {
   const [pageId, setPageId] = useState(defaultPageId ?? '')
-  const [platform, setPlatform] = useState('twitter')
+  const [platform, setPlatform] = useState('')
   const [tone, setTone] = useState('')
   const [abTest, setAbTest] = useState(false)
   const [variantCount, setVariantCount] = useState(2)
   const generatePosts = useGeneratePosts()
   const generateVariants = useGenerateVariants()
+  const { data: platforms } = usePlatformsQuery()
   const isPending = generatePosts.isPending || generateVariants.isPending
 
   const crawledPages = pages.filter((p) => p.status === 'crawled')
+  // Only platforms the admin hasn't hidden AND the user has actually connected an
+  // account for — drafting a post for a platform with nothing to publish it to isn't useful.
+  const connectedPlatforms = platforms?.filter((p) => p.accounts.length > 0) ?? []
+
+  useEffect(() => {
+    if (!platform && connectedPlatforms.length > 0) {
+      setPlatform(connectedPlatforms[0].platform)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [connectedPlatforms.length])
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault()
@@ -101,13 +114,23 @@ export function GeneratePostDialog({
           </div>
           <div className="space-y-2">
             <Label htmlFor="generate-platform">Platform</Label>
-            <Select id="generate-platform" value={platform} onChange={(e) => setPlatform(e.target.value)}>
-              {PLATFORM_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </Select>
+            {connectedPlatforms.length > 0 ? (
+              <Select id="generate-platform" value={platform} onChange={(e) => setPlatform(e.target.value)}>
+                {connectedPlatforms.map((p) => (
+                  <option key={p.platform} value={p.platform}>
+                    {PLATFORM_LABELS[p.platform] ?? p.platform}
+                  </option>
+                ))}
+              </Select>
+            ) : (
+              <p className="text-caption text-text-muted">
+                No connected platforms yet.{' '}
+                <Link to="/platforms" className="text-accent-blue hover:underline">
+                  Connect one
+                </Link>{' '}
+                before generating a post.
+              </p>
+            )}
           </div>
           {!abTest && (
             <div className="space-y-2">
@@ -152,7 +175,7 @@ export function GeneratePostDialog({
             <Button type="button" variant="secondary" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={isPending || !pageId}>
+            <Button type="submit" disabled={isPending || !pageId || !platform}>
               {isPending ? (
                 <>
                   <Loader2 size={16} className="animate-spin" />

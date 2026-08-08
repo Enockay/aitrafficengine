@@ -44,7 +44,7 @@ def list_schedules(
         .join(Page, Post.page_id == Page.id)
         .join(Site, Page.site_id == Site.id)
         .join(PlatformAccount, Schedule.platform_account_id == PlatformAccount.id)
-        .where(Site.user_id == current_user.id)
+        .where(Site.user_id == current_user.id, Post.deleted_at.is_(None))
     )
     if status_filter:
         query = query.where(Schedule.status == status_filter)

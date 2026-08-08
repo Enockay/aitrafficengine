@@ -21,7 +21,9 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
 import { LinkedInPreview } from '@/components/posts/LinkedInPreview'
+import { PinterestPreview } from '@/components/posts/PinterestPreview'
 import { RedditPreview } from '@/components/posts/RedditPreview'
+import { TumblrPreview } from '@/components/posts/TumblrPreview'
 import { TweetThreadPreview } from '@/components/posts/TweetThreadPreview'
 import { useUsageQuery } from '@/hooks/useBilling'
 import { useOptimalTimesQuery } from '@/hooks/useOptimalTimes'
@@ -265,6 +267,7 @@ export function PostEditorDialog({ post, pageTitle, pageUrl, onOpenChange }: Pos
         scheduled_at: new Date(scheduledAt).toISOString(),
       })
       toast.success('Post scheduled')
+      onOpenChange(false)
     } catch (error) {
       toast.error(getErrorMessage(error, 'Failed to schedule post'))
     }
@@ -278,6 +281,7 @@ export function PostEditorDialog({ post, pageTitle, pageUrl, onOpenChange }: Pos
     try {
       await publishPost.mutateAsync({ id: post!.id, platform_account_id: accountId })
       toast.success('Post published')
+      onOpenChange(false)
     } catch (error) {
       toast.error(getErrorMessage(error, 'Failed to publish post'))
     }
@@ -653,6 +657,24 @@ export function PostEditorDialog({ post, pageTitle, pageUrl, onOpenChange }: Pos
             {isTwitter && <TweetThreadPreview tweets={tweets} hashtags={hashtags} />}
             {isLinkedIn && <LinkedInPreview body={bodyText} hashtags={hashtags} />}
             {isReddit && <RedditPreview title={titleText} body={bodyText} />}
+            {isTumblr && (
+              <TumblrPreview
+                title={titleText}
+                body={bodyText}
+                hashtags={hashtags}
+                mediaUrl={mediaUrl}
+                mediaType={mediaType}
+              />
+            )}
+            {isPinterest && (
+              <PinterestPreview
+                title={titleText}
+                description={bodyText}
+                mediaUrl={mediaUrl}
+                mediaType={mediaType}
+                trackedUrl={trackedUrl}
+              />
+            )}
           </div>
         </div>
 

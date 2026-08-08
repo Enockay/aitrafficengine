@@ -47,7 +47,9 @@ def delete(db: Session) -> None:
 def mask_key(key: str) -> str:
     if len(key) <= 4:
         return "*" * len(key)
-    return f"{'*' * (len(key) - 4)}{key[-4:]}"
+    # Fixed-width mask (not proportional to key length) — Brevo keys run ~80 chars,
+    # and mirroring the full length here overflowed the admin card's display.
+    return f"{'*' * 8}{key[-4:]}"
 
 
 def get_status(db: Session) -> dict:

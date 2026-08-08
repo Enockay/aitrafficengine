@@ -186,6 +186,22 @@ def execute_scheduled(db: Session, schedule: Schedule) -> None:
         )
         return
 
+    if post.deleted_at is not None:
+        # delete_post() clears pending schedules up front, but this guards any schedule
+        # that predates that fix (or a race) from publishing content the user deleted.
+        schedule.status = "failed"
+        schedule.last_error = "Post was deleted"
+        db.commit()
+        log_activity(
+            db,
+            user_id=user_id,
+            action="publish_failed",
+            entity_type="post",
+            entity_id=post.id,
+            details={"error": "Post was deleted", "schedule_id": str(schedule.id)},
+        )
+        return
+
     try:
         result = _publish(db, platform_account, post)
     except DistributionError as exc:
