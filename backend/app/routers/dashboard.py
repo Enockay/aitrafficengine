@@ -22,6 +22,7 @@ from app.schemas.dashboard import (
     PlatformHealth,
     TrafficDay,
 )
+from app.services import platform_settings
 from app.services.connectors import supported_platforms
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
@@ -220,6 +221,10 @@ def get_dashboard_overview(current_user: User = Depends(get_current_user), db: S
     # ---- Platform health ----
     platform_health = []
     for platform in supported_platforms():
+        # Keep in sync with list_platforms() in routers/platforms.py — admin-disabled
+        # platforms are hidden from the Platforms page, so they shouldn't surface here either.
+        if not platform_settings.is_enabled(db, platform):
+            continue
         account = db.execute(
             select(PlatformAccount)
             .where(
