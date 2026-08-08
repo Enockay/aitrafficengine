@@ -1,3 +1,5 @@
+from urllib.parse import urlparse
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -28,13 +30,25 @@ settings = get_settings()
 
 app = FastAPI(title=settings.app_name, debug=settings.debug)
 
+
+def _frontend_origins(frontend_url: str) -> list[str]:
+    # FRONTEND_URL only names one host, but the frontend is commonly reachable at both
+    # the apex and "www." (both served by the same container per the Coolify domain
+    # config) — allow whichever one isn't explicitly configured too, instead of only
+    # trusting the exact configured host.
+    url = frontend_url.rstrip("/")
+    parsed = urlparse(url)
+    other_host = parsed.netloc.removeprefix("www.") if parsed.netloc.startswith("www.") else f"www.{parsed.netloc}"
+    return [url, f"{parsed.scheme}://{other_host}"]
+
+
 app.add_middleware(RateLimitMiddleware)
 # Added last so it's the outermost middleware — its response headers must apply even to
 # early responses (e.g. 429s) produced by RateLimitMiddleware, or the browser's CORS
 # check would mask the real error behind a confusing "blocked by CORS policy" failure.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.frontend_url],
+    allow_origins=_frontend_origins(settings.frontend_url),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
