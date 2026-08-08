@@ -15,12 +15,14 @@ services:
       - redis
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: ${VITE_API_URL}
     ports:
       - "5273:5173"
     expose:
       - "5173"
-    env_file: .env
 
   celery_worker:
     build: ./backend
