@@ -1,13 +1,11 @@
 services:
   redis:
     image: redis:7
-    ports:
-      - "6379:6379"
+    expose:
+      - "6379"
 
   backend:
     build: ./backend
-    ports:
-      - "8900:8000"
     expose:
       - "8000"
     env_file: .env
@@ -25,8 +23,6 @@ services:
       context: ./frontend
       args:
         VITE_API_URL: ${VITE_API_URL}
-    ports:
-      - "5273:5173"
     expose:
       - "5173"
     healthcheck:
