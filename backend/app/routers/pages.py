@@ -114,7 +114,14 @@ def _build_post_from_generation(db: Session, page: Page, platform: str, result: 
     # clicks get logged as first-party Analytics data — tracked_url stays the real
     # destination the redirect ultimately forwards to.
     redirect_url = f"{settings.backend_url}/r/{post.id}"
-    post.body = post.body.replace(page.url, redirect_url)
+    if page.url in post.body:
+        post.body = post.body.replace(page.url, redirect_url)
+    elif platform != "pinterest":
+        # The model was only asked to include the URL "naturally" — no guarantee it
+        # reproduced it verbatim (or at all). Pinterest is exempt: its connector attaches
+        # the tracked link via a separate `link` field at publish time, not body text,
+        # so there's nothing to append here.
+        post.body = f"{post.body.rstrip()}\n\n{redirect_url}"
     post.content_hash = compute_content_hash(post.body)
     db.commit()
     db.refresh(post)

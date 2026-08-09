@@ -252,6 +252,13 @@ def discover_site_urls(domain: str, limit: int = DEFAULT_DISCOVERY_LIMIT) -> lis
                     except httpx.HTTPError:
                         continue
 
+                # A sitemap's <loc> entries are trusted as-is, unlike _discover_via_links'
+                # crawled hrefs below — but if the domain redirects elsewhere (e.g. a
+                # regional/ccTLD redirect, .com -> .co.ke) `client.get` follows it and the
+                # fetched sitemap can declare a completely different domain. Without this
+                # filter every discovered page silently inherits that other domain instead
+                # of the one the user actually added.
+                page_urls = [u for u in page_urls if urlparse(u).netloc == domain]
                 page_urls = _dedupe_by_path(page_urls)
                 if page_urls:
                     return page_urls[:limit]
