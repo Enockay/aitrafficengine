@@ -15,6 +15,7 @@ import AdminIntegrations from '@/pages/admin/Integrations'
 import AdminOverview from '@/pages/admin/Overview'
 import AdminSchedules from '@/pages/admin/Schedules'
 import AdminSites from '@/pages/admin/Sites'
+import AdminTraffic from '@/pages/admin/Traffic'
 import AdminUsers from '@/pages/admin/Users'
 import About from '@/pages/About'
 import Analytics from '@/pages/Analytics'
@@ -87,6 +88,7 @@ function App() {
                 </Route>
                 <Route element={<AdminLayout />}>
                   <Route path="/admin" element={<AdminOverview />} />
+                  <Route path="/admin/traffic" element={<AdminTraffic />} />
                   <Route path="/admin/users" element={<AdminUsers />} />
                   <Route path="/admin/billing" element={<AdminBilling />} />
                   <Route path="/admin/sites" element={<AdminSites />} />

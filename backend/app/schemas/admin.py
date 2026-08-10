@@ -176,6 +176,62 @@ class AdminActivityLogListResponse(BaseModel):
     limit: int
 
 
+class TrafficDayPoint(BaseModel):
+    date: str
+    sessions: int
+    pageviews: int
+
+
+class TrafficBreakdownEntry(BaseModel):
+    label: str
+    count: int
+
+
+class TrafficCrawlEvent(BaseModel):
+    id: uuid.UUID
+    site_name: str
+    site_domain: str
+    crawled: int
+    discovered: int
+    failed: int
+    triggered_by: str | None
+    created_at: datetime
+
+
+class AdminTrafficSummaryOut(BaseModel):
+    total_sessions: int
+    total_pageviews: int
+    unique_visitors: int
+    total_crawls: int
+    sessions_by_day: list[TrafficDayPoint]
+    top_countries: list[TrafficBreakdownEntry]
+    top_browsers: list[TrafficBreakdownEntry]
+    top_devices: list[TrafficBreakdownEntry]
+    recent_crawls: list[TrafficCrawlEvent]
+
+
+class AdminTrafficSessionOut(BaseModel):
+    id: uuid.UUID
+    user_email: str
+    ip_address: str | None
+    country: str | None
+    city: str | None
+    browser: str | None
+    os: str | None
+    device_type: str | None
+    started_at: datetime
+    last_seen_at: datetime
+    duration_seconds: int
+    page_count: int
+
+
+class AdminTrafficSessionListResponse(BaseModel):
+    items: list[AdminTrafficSessionOut]
+    total: int
+    page: int
+    limit: int
+
+
 class PaystackConfigStatusOut(BaseModel):
     configured: bool
     source: str

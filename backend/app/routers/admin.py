@@ -29,6 +29,8 @@ from app.schemas.admin import (
     AdminSiteListResponse,
     AdminSiteOut,
     AdminStatsOut,
+    AdminTrafficSessionListResponse,
+    AdminTrafficSummaryOut,
     AdminUserDetailOut,
     AdminUserListResponse,
     AdminUserOut,
@@ -45,6 +47,7 @@ from app.schemas.admin import (
 from app.services import brevo_config, paystack_config
 from app.services.activity_log import log_activity
 from app.services.admin_stats import get_admin_summary
+from app.services.admin_traffic import get_traffic_summary, list_traffic_sessions
 from app.services.plans import PLANS
 from app.services.site_stats import to_site_out
 
@@ -73,6 +76,27 @@ def _guard_not_self(current_user: User, target_id: uuid.UUID, action: str) -> No
 @router.get("/stats", response_model=AdminStatsOut)
 def get_stats(current_user: User = Depends(require_role("admin")), db: Session = Depends(get_db)):
     return AdminStatsOut(**get_admin_summary(db))
+
+
+# ---------------------------------------------------------------------------
+# Traffic
+# ---------------------------------------------------------------------------
+
+
+@router.get("/traffic/summary", response_model=AdminTrafficSummaryOut)
+def get_traffic_summary_endpoint(current_user: User = Depends(require_role("admin")), db: Session = Depends(get_db)):
+    return AdminTrafficSummaryOut(**get_traffic_summary(db))
+
+
+@router.get("/traffic/sessions", response_model=AdminTrafficSessionListResponse)
+def list_traffic_sessions_endpoint(
+    page: int = Query(default=1, ge=1),
+    limit: int = Query(default=20, ge=1, le=100),
+    search: str | None = None,
+    current_user: User = Depends(require_role("admin")),
+    db: Session = Depends(get_db),
+):
+    return AdminTrafficSessionListResponse(**list_traffic_sessions(db, page=page, limit=limit, search=search))
 
 
 # ---------------------------------------------------------------------------

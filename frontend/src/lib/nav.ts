@@ -1,4 +1,5 @@
 import {
+  Activity,
   BarChart3,
   CalendarClock,
   CreditCard,
@@ -53,6 +54,7 @@ export const BILLING_ITEM: NavItem = { label: 'Billing', path: '/billing', icon:
 // the tenant Sidebar's own nav.
 export const ADMIN_NAV_ITEMS: NavItem[] = [
   { label: 'Overview', path: '/admin', icon: ShieldCheck },
+  { label: 'Traffic', path: '/admin/traffic', icon: Activity },
   { label: 'Users', path: '/admin/users', icon: Users },
   { label: 'Billing', path: '/admin/billing', icon: CreditCard },
   { label: 'Sites', path: '/admin/sites', icon: Globe },

@@ -4,7 +4,7 @@ public registration always creates role="user"), so this has to run directly
 against the database.
 
 Usage (from inside the backend container, e.g. `docker exec -it <backend> ...`):
-    python -m scripts.create_admin admin@example.com 'a-strong-password' 'Admin Name'
+    python -m scripts.create_admin blackienetworks@gmail.com 'a-strong-password' ''
 
 Safe to re-run: if the email already exists, it just resets the password and
 promotes that user to admin instead of erroring.
