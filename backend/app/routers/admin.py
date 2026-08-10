@@ -34,7 +34,9 @@ from app.schemas.admin import (
     AdminUserDetailOut,
     AdminUserListResponse,
     AdminUserOut,
+    AdminPlanIn,
     AdminPlanOut,
+    AdminPlanUpdateIn,
     AdminTransactionListResponse,
     AdminTransactionOut,
     BrevoConfigIn,
@@ -53,7 +55,7 @@ from app.services.paystack import PaystackError, PaystackNotConfigured
 from app.services.activity_log import log_activity
 from app.services.admin_stats import get_admin_summary
 from app.services.admin_traffic import get_traffic_summary, list_traffic_sessions
-from app.services.plans import PLANS
+from app.services.plans import PlanError, create_plan, delete_plan, get_plan, list_plans, update_plan
 from app.services.site_stats import to_site_out
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -295,7 +297,7 @@ def override_user_plan(
     current_user: User = Depends(require_role("admin")),
     db: Session = Depends(get_db),
 ):
-    if payload.plan_code not in PLANS:
+    if get_plan(db, payload.plan_code) is None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Unknown plan: {payload.plan_code}")
     user = _get_target_user(db, user_id)
     subscription = user.subscription
@@ -541,6 +543,22 @@ def list_paystack_transactions(
     except PaystackError as exc:
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc))
 
+    def _plan_code(tx: dict) -> str | None:
+        # Paystack's own top-level `plan` field only gets populated once a
+        # transaction actually creates/renews a Paystack-native subscription —
+        # which never happens for our one-off amount+plan checkout (see
+        # services/paystack.py), and never for failed/abandoned attempts either
+        # way. The plan we actually charged for lives in the metadata we set
+        # ourselves at initialize time (see billing.py's `subscribe`), which
+        # Paystack echoes back verbatim regardless of how the transaction ended.
+        metadata = tx.get("metadata") or {}
+        if isinstance(metadata, dict) and metadata.get("plan_code"):
+            return metadata["plan_code"]
+        plan = tx.get("plan")
+        if isinstance(plan, dict):
+            return plan.get("plan_code")
+        return plan or None
+
     items = [
         AdminTransactionOut(
             id=tx["id"],
@@ -550,7 +568,7 @@ def list_paystack_transactions(
             currency=tx.get("currency", "NGN"),
             channel=tx.get("channel"),
             customer_email=(tx.get("customer") or {}).get("email"),
-            plan_code=(tx.get("plan") or {}).get("plan_code") if isinstance(tx.get("plan"), dict) else tx.get("plan"),
+            plan_code=_plan_code(tx),
             gateway_response=tx.get("gateway_response"),
             paid_at=tx.get("paid_at"),
             created_at=tx.get("created_at"),
@@ -640,19 +658,76 @@ def delete_paystack_config(
     return PaystackConfigStatusOut(**paystack_config.get_status(db))
 
 
-@router.get("/config/plans", response_model=list[AdminPlanOut])
-def get_plans_config(current_user: User = Depends(require_role("admin"))):
-    """Read-only view of the subscription tiers and the Paystack plan_code each is
-    wired to — lets an admin confirm the codes actually match what exists on the
-    configured Paystack account without digging through plans.py or Paystack's
-    dashboard directly.
-    """
-    return [
-        AdminPlanOut(
-            code=plan.code, name=plan.name, price_usd=plan.price_usd, paystack_plan_code=plan.paystack_plan_code
-        )
-        for plan in PLANS.values()
-    ]
+def _plan_to_out(plan) -> AdminPlanOut:
+    return AdminPlanOut(
+        code=plan.code,
+        name=plan.name,
+        price_usd=plan.price_usd,
+        max_sites=plan.max_sites,
+        max_posts_per_month=plan.max_posts_per_month,
+        max_flyers_per_month=plan.max_flyers_per_month,
+        schedule_horizon_days=plan.schedule_horizon_days,
+        paystack_plan_code=plan.paystack_plan_code,
+    )
+
+
+@router.get("/plans", response_model=list[AdminPlanOut])
+def get_plans(current_user: User = Depends(require_role("admin")), db: Session = Depends(get_db)):
+    return [_plan_to_out(plan) for plan in list_plans(db)]
+
+
+@router.post("/plans", response_model=AdminPlanOut, status_code=status.HTTP_201_CREATED)
+def add_plan(
+    payload: AdminPlanIn,
+    request: Request,
+    current_user: User = Depends(require_role("admin")),
+    db: Session = Depends(get_db),
+):
+    try:
+        plan = create_plan(db, **payload.model_dump())
+    except PlanError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+    log_activity(
+        db, user_id=current_user.id, action="admin_create_plan", entity_type="plan",
+        entity_id=current_user.id, details={"code": plan.code}, request=request,
+    )
+    return _plan_to_out(plan)
+
+
+@router.put("/plans/{code}", response_model=AdminPlanOut)
+def edit_plan(
+    code: str,
+    payload: AdminPlanUpdateIn,
+    request: Request,
+    current_user: User = Depends(require_role("admin")),
+    db: Session = Depends(get_db),
+):
+    try:
+        plan = update_plan(db, code, **payload.model_dump())
+    except PlanError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+    log_activity(
+        db, user_id=current_user.id, action="admin_update_plan", entity_type="plan",
+        entity_id=current_user.id, details={"code": code}, request=request,
+    )
+    return _plan_to_out(plan)
+
+
+@router.delete("/plans/{code}", status_code=status.HTTP_204_NO_CONTENT)
+def remove_plan(
+    code: str,
+    request: Request,
+    current_user: User = Depends(require_role("admin")),
+    db: Session = Depends(get_db),
+):
+    try:
+        delete_plan(db, code)
+    except PlanError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+    log_activity(
+        db, user_id=current_user.id, action="admin_delete_plan", entity_type="plan",
+        entity_id=current_user.id, details={"code": code}, request=request,
+    )
 
 
 @router.get("/config/brevo", response_model=BrevoConfigStatusOut)

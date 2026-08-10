@@ -7,7 +7,7 @@ from app.models.schedule import Schedule
 from app.models.site import Site
 from app.models.subscription import Subscription
 from app.models.user import User
-from app.services.plans import PLANS
+from app.services.plans import list_plans
 
 RECENT_SIGNUPS_LIMIT = 10
 
@@ -28,8 +28,9 @@ def get_admin_summary(db: Session) -> dict:
     # Kept explicitly separate from the real Payment ledger sum below — this is a
     # snapshot estimate of recurring revenue from currently-active plans, not a
     # historical actual. Trialing subscriptions don't count toward MRR.
+    price_by_code = {plan.code: plan.price_usd for plan in list_plans(db)}
     mrr_estimate_usd = sum(
-        PLANS[code].price_usd * count for code, count in users_by_plan.items() if code in PLANS
+        price_by_code[code] * count for code, count in users_by_plan.items() if code in price_by_code
     )
 
     revenue_rows = db.execute(

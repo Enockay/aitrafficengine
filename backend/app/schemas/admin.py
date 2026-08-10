@@ -272,6 +272,31 @@ class AdminPlanOut(BaseModel):
     code: str
     name: str
     price_usd: int
+    max_sites: int
+    max_posts_per_month: int
+    max_flyers_per_month: int
+    schedule_horizon_days: int
+    paystack_plan_code: str
+
+
+class AdminPlanIn(BaseModel):
+    code: str
+    name: str
+    price_usd: int
+    max_sites: int
+    max_posts_per_month: int
+    max_flyers_per_month: int
+    schedule_horizon_days: int
+    paystack_plan_code: str
+
+
+class AdminPlanUpdateIn(BaseModel):
+    name: str
+    price_usd: int
+    max_sites: int
+    max_posts_per_month: int
+    max_flyers_per_month: int
+    schedule_horizon_days: int
     paystack_plan_code: str
 
 

@@ -1,55 +1,8 @@
-from dataclasses import dataclass
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 
-
-@dataclass(frozen=True)
-class Plan:
-    code: str
-    name: str
-    price_usd: int
-    max_sites: int
-    max_posts_per_month: int
-    max_flyers_per_month: int
-    schedule_horizon_days: int
-    paystack_plan_code: str
-
-
-# `paystack_plan_code` values are the real codes Paystack assigned when these plans
-# were created via `scripts/create_paystack_plans.py` (POST /plan) — Paystack always
-# generates its own PLN_xxx code, it never accepts a custom one, so these must be
-# copied from that script's output whenever a plan is recreated (e.g. new Paystack
-# account, or amount changes since Paystack plans are immutable once created).
-PLANS: dict[str, Plan] = {
-    "starter": Plan(
-        code="starter",
-        name="Starter",
-        price_usd=20,
-        max_sites=1,
-        max_posts_per_month=30,
-        max_flyers_per_month=10,
-        schedule_horizon_days=7,
-        paystack_plan_code="PLN_l2fi7r3inv28c4f",
-    ),
-    "growth": Plan(
-        code="growth",
-        name="Growth",
-        price_usd=49,
-        max_sites=3,
-        max_posts_per_month=120,
-        max_flyers_per_month=40,
-        schedule_horizon_days=14,
-        paystack_plan_code="PLN_evyy306bynu6szd",
-    ),
-    "agency": Plan(
-        code="agency",
-        name="Agency",
-        price_usd=149,
-        max_sites=10,
-        max_posts_per_month=400,
-        max_flyers_per_month=150,
-        schedule_horizon_days=30,
-        paystack_plan_code="PLN_8lgzcohetotmaws",
-    ),
-}
+from app.models.subscription import Subscription
+from app.models.subscription_plan import SubscriptionPlan
 
 TRIAL_PLAN_CODE = "growth"
 TRIAL_DAYS = 5
@@ -59,5 +12,83 @@ TRIAL_DAYS = 5
 # platform catalog. Revisit if the platform count grows.
 
 
-def get_plan(code: str) -> Plan | None:
-    return PLANS.get(code)
+class PlanError(Exception):
+    pass
+
+
+def list_plans(db: Session) -> list[SubscriptionPlan]:
+    return list(db.execute(select(SubscriptionPlan).order_by(SubscriptionPlan.price_usd)).scalars())
+
+
+def get_plan(db: Session, code: str) -> SubscriptionPlan | None:
+    return db.get(SubscriptionPlan, code)
+
+
+def create_plan(
+    db: Session,
+    *,
+    code: str,
+    name: str,
+    price_usd: int,
+    max_sites: int,
+    max_posts_per_month: int,
+    max_flyers_per_month: int,
+    schedule_horizon_days: int,
+    paystack_plan_code: str,
+) -> SubscriptionPlan:
+    if get_plan(db, code) is not None:
+        raise PlanError(f"A plan with code {code!r} already exists.")
+    plan = SubscriptionPlan(
+        code=code,
+        name=name,
+        price_usd=price_usd,
+        max_sites=max_sites,
+        max_posts_per_month=max_posts_per_month,
+        max_flyers_per_month=max_flyers_per_month,
+        schedule_horizon_days=schedule_horizon_days,
+        paystack_plan_code=paystack_plan_code,
+    )
+    db.add(plan)
+    db.commit()
+    db.refresh(plan)
+    return plan
+
+
+def update_plan(
+    db: Session,
+    code: str,
+    *,
+    name: str,
+    price_usd: int,
+    max_sites: int,
+    max_posts_per_month: int,
+    max_flyers_per_month: int,
+    schedule_horizon_days: int,
+    paystack_plan_code: str,
+) -> SubscriptionPlan:
+    plan = get_plan(db, code)
+    if plan is None:
+        raise PlanError(f"Unknown plan: {code}")
+    plan.name = name
+    plan.price_usd = price_usd
+    plan.max_sites = max_sites
+    plan.max_posts_per_month = max_posts_per_month
+    plan.max_flyers_per_month = max_flyers_per_month
+    plan.schedule_horizon_days = schedule_horizon_days
+    plan.paystack_plan_code = paystack_plan_code
+    db.commit()
+    db.refresh(plan)
+    return plan
+
+
+def delete_plan(db: Session, code: str) -> None:
+    plan = get_plan(db, code)
+    if plan is None:
+        return
+    if code == TRIAL_PLAN_CODE:
+        raise PlanError(f"Can't delete {code!r} — it's the plan new signups start their trial on.")
+    in_use = db.execute(select(Subscription.id).where(Subscription.plan_code == code).limit(1)).first()
+    if in_use:
+        raise PlanError(f"Can't delete {code!r} — at least one subscription is still on this plan.")
+    db.delete(plan)
+    db.commit()

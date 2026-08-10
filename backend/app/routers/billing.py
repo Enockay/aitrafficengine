@@ -21,7 +21,7 @@ from app.schemas.billing import (
     UsageOut,
 )
 from app.services.paystack import PaystackError, PaystackNotConfigured, initialize_transaction, verify_webhook_signature
-from app.services.plans import PLANS, get_plan
+from app.services.plans import get_plan, list_plans
 from app.services.quotas import get_usage_summary
 
 router = APIRouter(prefix="/billing", tags=["billing"])
@@ -39,7 +39,7 @@ def _get_or_create_subscription(db: Session, user: User) -> Subscription:
 
 
 @router.get("/plans", response_model=list[PlanOut])
-def list_plans():
+def get_plans(db: Session = Depends(get_db)):
     return [
         PlanOut(
             code=plan.code,
@@ -50,7 +50,7 @@ def list_plans():
             max_flyers_per_month=plan.max_flyers_per_month,
             schedule_horizon_days=plan.schedule_horizon_days,
         )
-        for plan in PLANS.values()
+        for plan in list_plans(db)
     ]
 
 
@@ -78,7 +78,7 @@ def subscribe(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    plan = get_plan(payload.plan_code)
+    plan = get_plan(db, payload.plan_code)
     if not plan:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Unknown plan: {payload.plan_code}")
 
@@ -145,7 +145,7 @@ def _activate_subscription(db: Session, data: dict) -> None:
     metadata = data.get("metadata") or {}
     user_id = metadata.get("user_id")
     plan_code = metadata.get("plan_code")
-    if not user_id or plan_code not in PLANS:
+    if not user_id or plan_code is None or get_plan(db, plan_code) is None:
         return
 
     subscription = db.query(Subscription).filter(Subscription.user_id == uuid.UUID(user_id)).one_or_none()

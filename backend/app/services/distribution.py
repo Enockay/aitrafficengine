@@ -99,7 +99,7 @@ def schedule_post(
     if scheduled_at <= datetime.now(timezone.utc):
         raise DistributionError("Scheduled time must be in the future.")
     try:
-        check_schedule_horizon(post.page.site.user, scheduled_at)
+        check_schedule_horizon(db, post.page.site.user, scheduled_at)
     except QuotaExceededError as exc:
         raise DistributionError(str(exc)) from exc
     if _has_local_redirect_link(post):

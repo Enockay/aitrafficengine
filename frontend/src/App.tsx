@@ -13,6 +13,7 @@ import { useAuthStore } from '@/stores/authStore'
 import AdminBilling from '@/pages/admin/Billing'
 import AdminIntegrations from '@/pages/admin/Integrations'
 import AdminOverview from '@/pages/admin/Overview'
+import AdminPlans from '@/pages/admin/Plans'
 import AdminSchedules from '@/pages/admin/Schedules'
 import AdminSites from '@/pages/admin/Sites'
 import AdminTraffic from '@/pages/admin/Traffic'
@@ -93,6 +94,7 @@ function App() {
                   <Route path="/admin/users" element={<AdminUsers />} />
                   <Route path="/admin/billing" element={<AdminBilling />} />
                   <Route path="/admin/transactions" element={<AdminTransactions />} />
+                  <Route path="/admin/plans" element={<AdminPlans />} />
                   <Route path="/admin/sites" element={<AdminSites />} />
                   <Route path="/admin/schedules" element={<AdminSchedules />} />
                   <Route path="/admin/integrations" element={<AdminIntegrations />} />
