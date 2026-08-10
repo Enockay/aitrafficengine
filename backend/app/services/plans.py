@@ -13,9 +13,11 @@ class Plan:
     paystack_plan_code: str
 
 
-# `paystack_plan_code` values must be created ahead of time in Paystack's dashboard/API
-# (POST /plan) with matching amounts — this is a deployment prerequisite, not something
-# these constants can provision on their own.
+# `paystack_plan_code` values are the real codes Paystack assigned when these plans
+# were created via `scripts/create_paystack_plans.py` (POST /plan) — Paystack always
+# generates its own PLN_xxx code, it never accepts a custom one, so these must be
+# copied from that script's output whenever a plan is recreated (e.g. new Paystack
+# account, or amount changes since Paystack plans are immutable once created).
 PLANS: dict[str, Plan] = {
     "starter": Plan(
         code="starter",
@@ -25,7 +27,7 @@ PLANS: dict[str, Plan] = {
         max_posts_per_month=30,
         max_flyers_per_month=10,
         schedule_horizon_days=7,
-        paystack_plan_code="starter-monthly",
+        paystack_plan_code="PLN_l2fi7r3inv28c4f",
     ),
     "growth": Plan(
         code="growth",
@@ -35,7 +37,7 @@ PLANS: dict[str, Plan] = {
         max_posts_per_month=120,
         max_flyers_per_month=40,
         schedule_horizon_days=14,
-        paystack_plan_code="growth-monthly",
+        paystack_plan_code="PLN_evyy306bynu6szd",
     ),
     "agency": Plan(
         code="agency",
@@ -45,7 +47,7 @@ PLANS: dict[str, Plan] = {
         max_posts_per_month=400,
         max_flyers_per_month=150,
         schedule_horizon_days=30,
-        paystack_plan_code="agency-monthly",
+        paystack_plan_code="PLN_8lgzcohetotmaws",
     ),
 }
 

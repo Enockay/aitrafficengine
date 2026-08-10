@@ -34,6 +34,7 @@ from app.schemas.admin import (
     AdminUserDetailOut,
     AdminUserListResponse,
     AdminUserOut,
+    AdminPlanOut,
     BrevoConfigIn,
     BrevoConfigStatusOut,
     GeoipConfigStatusOut,
@@ -595,6 +596,21 @@ def delete_paystack_config(
         entity_id=current_user.id, request=request,
     )
     return PaystackConfigStatusOut(**paystack_config.get_status(db))
+
+
+@router.get("/config/plans", response_model=list[AdminPlanOut])
+def get_plans_config(current_user: User = Depends(require_role("admin"))):
+    """Read-only view of the subscription tiers and the Paystack plan_code each is
+    wired to — lets an admin confirm the codes actually match what exists on the
+    configured Paystack account without digging through plans.py or Paystack's
+    dashboard directly.
+    """
+    return [
+        AdminPlanOut(
+            code=plan.code, name=plan.name, price_usd=plan.price_usd, paystack_plan_code=plan.paystack_plan_code
+        )
+        for plan in PLANS.values()
+    ]
 
 
 @router.get("/config/brevo", response_model=BrevoConfigStatusOut)

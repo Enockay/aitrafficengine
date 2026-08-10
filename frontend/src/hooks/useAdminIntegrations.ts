@@ -95,6 +95,23 @@ export function useRemoveBrevoConfig() {
   })
 }
 
+export interface AdminPlan {
+  code: string
+  name: string
+  price_usd: number
+  paystack_plan_code: string
+}
+
+export function useAdminPlansQuery() {
+  return useQuery({
+    queryKey: ['admin', 'config', 'plans'],
+    queryFn: async () => {
+      const { data } = await api.get<AdminPlan[]>('/admin/config/plans')
+      return data
+    },
+  })
+}
+
 export interface GeoipConfigStatus {
   configured: boolean
   source: 'database' | 'environment' | 'none'

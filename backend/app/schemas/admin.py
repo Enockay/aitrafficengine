@@ -266,3 +266,10 @@ class GeoipConfigStatusOut(BaseModel):
     filename: str | None
     size_bytes: int | None
     updated_at: datetime | None
+
+
+class AdminPlanOut(BaseModel):
+    code: str
+    name: str
+    price_usd: int
+    paystack_plan_code: str
