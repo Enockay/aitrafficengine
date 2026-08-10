@@ -80,3 +80,30 @@ def delete_post_media(key: str) -> None:
         _client().delete_object(Bucket=settings.s3_bucket_name, Key=key)
     except (BotoCoreError, ClientError):
         pass  # best-effort cleanup; a stale S3 object shouldn't block deleting the DB row
+
+
+def upload_geoip_db(file_bytes: bytes, key: str) -> None:
+    try:
+        _client().put_object(
+            Bucket=settings.s3_bucket_name,
+            Key=key,
+            Body=file_bytes,
+            ContentType="application/octet-stream",
+        )
+    except (BotoCoreError, ClientError) as exc:
+        raise S3UploadError(f"Failed to upload GeoIP database to S3: {exc}") from exc
+
+
+def download_geoip_db(key: str) -> bytes:
+    try:
+        obj = _client().get_object(Bucket=settings.s3_bucket_name, Key=key)
+        return obj["Body"].read()
+    except (BotoCoreError, ClientError) as exc:
+        raise S3UploadError(f"Failed to download GeoIP database from S3: {exc}") from exc
+
+
+def delete_geoip_db(key: str) -> None:
+    try:
+        _client().delete_object(Bucket=settings.s3_bucket_name, Key=key)
+    except (BotoCoreError, ClientError):
+        pass  # best-effort cleanup; a stale S3 object shouldn't block deleting the DB row

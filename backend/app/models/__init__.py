@@ -2,6 +2,7 @@ from app.models.activity_log import ActivityLog
 from app.models.analytics import Analytics
 from app.models.brevo_config import BrevoConfig
 from app.models.flyer import Flyer
+from app.models.geoip_config import GeoipConfig
 from app.models.page import Page
 from app.models.page_visit import PageVisit
 from app.models.payment import Payment
@@ -38,5 +39,6 @@ __all__ = [
     "Payment",
     "PaystackConfig",
     "BrevoConfig",
+    "GeoipConfig",
     "UserSession",
 ]

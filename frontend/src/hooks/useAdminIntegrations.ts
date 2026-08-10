@@ -94,3 +94,47 @@ export function useRemoveBrevoConfig() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', 'config', 'brevo'] }),
   })
 }
+
+export interface GeoipConfigStatus {
+  configured: boolean
+  source: 'database' | 'environment' | 'none'
+  filename: string | null
+  size_bytes: number | null
+  updated_at: string | null
+}
+
+export function useGeoipConfigQuery() {
+  return useQuery({
+    queryKey: ['admin', 'config', 'geoip'],
+    queryFn: async () => {
+      const { data } = await api.get<GeoipConfigStatus>('/admin/config/geoip')
+      return data
+    },
+  })
+}
+
+export function useSetGeoipConfig() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData()
+      formData.append('file', file)
+      const { data } = await api.put<GeoipConfigStatus>('/admin/config/geoip', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      return data
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', 'config', 'geoip'] }),
+  })
+}
+
+export function useRemoveGeoipConfig() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async () => {
+      const { data } = await api.delete<GeoipConfigStatus>('/admin/config/geoip')
+      return data
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', 'config', 'geoip'] }),
+  })
+}

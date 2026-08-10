@@ -1,6 +1,7 @@
 import { Loader2 } from 'lucide-react'
 
 import { BrevoConfigCard } from '@/components/admin/BrevoConfigCard'
+import { GeoipConfigCard } from '@/components/admin/GeoipConfigCard'
 import { PaystackConfigCard } from '@/components/admin/PaystackConfigCard'
 import { PlatformCredentialCard } from '@/components/admin/PlatformCredentialCard'
 import { TrendsSection } from '@/components/admin/TrendsSection'
@@ -39,6 +40,13 @@ export default function AdminIntegrations() {
             ))}
           </div>
         )}
+      </div>
+
+      <div className="mb-8">
+        <p className="mb-3 text-body-sm font-medium text-text-primary">Analytics</p>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <GeoipConfigCard />
+        </div>
       </div>
 
       <div>

@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, UploadFile, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
@@ -36,6 +36,7 @@ from app.schemas.admin import (
     AdminUserOut,
     BrevoConfigIn,
     BrevoConfigStatusOut,
+    GeoipConfigStatusOut,
     PaystackConfigIn,
     PaystackConfigStatusOut,
     RevenueMonthPoint,
@@ -44,7 +45,7 @@ from app.schemas.admin import (
     UpdateUserRoleRequest,
     UpdateUserStatusRequest,
 )
-from app.services import brevo_config, paystack_config
+from app.services import brevo_config, geoip_config, paystack_config
 from app.services.activity_log import log_activity
 from app.services.admin_stats import get_admin_summary
 from app.services.admin_traffic import get_traffic_summary, list_traffic_sessions
@@ -628,3 +629,48 @@ def delete_brevo_config(
         entity_id=current_user.id, request=request,
     )
     return BrevoConfigStatusOut(**brevo_config.get_status(db))
+
+
+MAX_GEOIP_UPLOAD_READ_BYTES = geoip_config.MAX_UPLOAD_BYTES + 1  # one byte past the allowed size
+
+
+@router.get("/config/geoip", response_model=GeoipConfigStatusOut)
+def get_geoip_config(current_user: User = Depends(require_role("admin")), db: Session = Depends(get_db)):
+    return GeoipConfigStatusOut(**geoip_config.get_status(db))
+
+
+@router.put("/config/geoip", response_model=GeoipConfigStatusOut)
+async def set_geoip_config(
+    request: Request,
+    file: UploadFile = File(...),
+    current_user: User = Depends(require_role("admin")),
+    db: Session = Depends(get_db),
+):
+    data = await file.read(MAX_GEOIP_UPLOAD_READ_BYTES)
+    if len(data) >= MAX_GEOIP_UPLOAD_READ_BYTES:
+        raise HTTPException(status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, detail="File is too large.")
+
+    try:
+        geoip_config.upload(db, data, file.filename or "GeoLite2-City.mmdb")
+    except geoip_config.GeoipConfigError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
+    log_activity(
+        db, user_id=current_user.id, action="admin_set_geoip_config", entity_type="config",
+        entity_id=current_user.id, request=request,
+    )
+    return GeoipConfigStatusOut(**geoip_config.get_status(db))
+
+
+@router.delete("/config/geoip", response_model=GeoipConfigStatusOut)
+def delete_geoip_config(
+    request: Request,
+    current_user: User = Depends(require_role("admin")),
+    db: Session = Depends(get_db),
+):
+    geoip_config.delete(db)
+    log_activity(
+        db, user_id=current_user.id, action="admin_delete_geoip_config", entity_type="config",
+        entity_id=current_user.id, request=request,
+    )
+    return GeoipConfigStatusOut(**geoip_config.get_status(db))

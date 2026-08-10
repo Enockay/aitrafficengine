@@ -38,7 +38,7 @@ def record_pageview(
             session = None
 
     if session is None:
-        country, city = geo_lookup(ip_address)
+        country, city = geo_lookup(db, ip_address)
         browser, os_name, device_type = parse_client(user_agent)
         session = UserSession(
             user_id=user.id,

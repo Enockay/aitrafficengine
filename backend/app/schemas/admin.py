@@ -258,3 +258,11 @@ class BrevoConfigIn(BaseModel):
     api_key: str
     sender_email: str
     sender_name: str
+
+
+class GeoipConfigStatusOut(BaseModel):
+    configured: bool
+    source: str
+    filename: str | None
+    size_bytes: int | None
+    updated_at: datetime | None
