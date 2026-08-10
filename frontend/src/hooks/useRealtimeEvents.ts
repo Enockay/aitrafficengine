@@ -91,6 +91,16 @@ export function useRealtimeEvents() {
           break
       }
 
+      // Support chat rides its own event type rather than the activity-log-derived
+      // entity_type above — fired directly by services/support.py, not activity_log.py.
+      // Invalidating a query key that isn't mounted (e.g. admin keys on a tenant's
+      // browser) is a harmless no-op, so one case safely covers both sides.
+      if (event.type === 'support_message') {
+        queryClient.invalidateQueries({ queryKey: ['support-thread'] })
+        queryClient.invalidateQueries({ queryKey: ['admin-support-conversations'] })
+        queryClient.invalidateQueries({ queryKey: ['admin-support-thread'] })
+      }
+
       if (event.type === 'post.publish') {
         toast.success('Post published', { description: 'A scheduled post just went live.' })
       } else if (event.type === 'post.publish_failed') {

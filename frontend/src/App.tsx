@@ -16,6 +16,7 @@ import AdminOverview from '@/pages/admin/Overview'
 import AdminPlans from '@/pages/admin/Plans'
 import AdminSchedules from '@/pages/admin/Schedules'
 import AdminSites from '@/pages/admin/Sites'
+import AdminSupport from '@/pages/admin/Support'
 import AdminTraffic from '@/pages/admin/Traffic'
 import AdminTransactions from '@/pages/admin/Transactions'
 import AdminUsers from '@/pages/admin/Users'
@@ -38,6 +39,7 @@ import ResetPassword from '@/pages/ResetPassword'
 import Scheduler from '@/pages/Scheduler'
 import Settings from '@/pages/Settings'
 import Sites from '@/pages/Sites'
+import Support from '@/pages/Support'
 import Terms from '@/pages/Terms'
 import VerifyEmail from '@/pages/VerifyEmail'
 
@@ -87,6 +89,7 @@ function App() {
                   <Route path="/platforms" element={<Platforms />} />
                   <Route path="/settings" element={<Settings />} />
                   <Route path="/billing" element={<Billing />} />
+                  <Route path="/support" element={<Support />} />
                 </Route>
                 <Route element={<AdminLayout />}>
                   <Route path="/admin" element={<AdminOverview />} />
@@ -97,6 +100,7 @@ function App() {
                   <Route path="/admin/plans" element={<AdminPlans />} />
                   <Route path="/admin/sites" element={<AdminSites />} />
                   <Route path="/admin/schedules" element={<AdminSchedules />} />
+                  <Route path="/admin/support" element={<AdminSupport />} />
                   <Route path="/admin/integrations" element={<AdminIntegrations />} />
                 </Route>
               </Route>

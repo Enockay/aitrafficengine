@@ -8,6 +8,7 @@ import {
   Image,
   Layers,
   LayoutDashboard,
+  LifeBuoy,
   type LucideIcon,
   Plug,
   Plug2,
@@ -63,6 +64,7 @@ export const ADMIN_NAV_ITEMS: NavItem[] = [
   { label: 'Plans', path: '/admin/plans', icon: Layers },
   { label: 'Sites', path: '/admin/sites', icon: Globe },
   { label: 'Schedules', path: '/admin/schedules', icon: CalendarClock },
+  { label: 'Support', path: '/admin/support', icon: LifeBuoy },
   { label: 'Integrations', path: '/admin/integrations', icon: Plug2 },
 ]
 

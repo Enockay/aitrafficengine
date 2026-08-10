@@ -21,6 +21,7 @@ from app.routers import (
     redirect,
     schedules,
     sites,
+    support,
     telemetry,
     trends,
     ws,
@@ -71,6 +72,7 @@ app.include_router(analytics.router, prefix=settings.api_v1_prefix)
 app.include_router(optimal_times.router, prefix=settings.api_v1_prefix)
 app.include_router(dashboard.router, prefix=settings.api_v1_prefix)
 app.include_router(activity_logs.router, prefix=settings.api_v1_prefix)
+app.include_router(support.router, prefix=settings.api_v1_prefix)
 app.include_router(telemetry.router, prefix=settings.api_v1_prefix)
 app.include_router(trends.router, prefix=settings.api_v1_prefix)
 app.include_router(ws.router, prefix=settings.api_v1_prefix)

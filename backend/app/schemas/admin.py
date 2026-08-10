@@ -319,3 +319,22 @@ class AdminTransactionListResponse(BaseModel):
     total: int
     page: int
     per_page: int
+
+
+class AdminSupportConversationOut(BaseModel):
+    user_id: uuid.UUID
+    user_email: str
+    user_name: str
+    last_message: str
+    last_message_at: datetime
+    last_sender_role: str
+
+
+class SupportConfigStatusOut(BaseModel):
+    configured: bool
+    notification_email: str | None
+    updated_at: datetime | None
+
+
+class SupportConfigIn(BaseModel):
+    notification_email: str

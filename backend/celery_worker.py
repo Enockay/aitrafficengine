@@ -11,7 +11,13 @@ celery_app = Celery(
     "ai_traffic_engine",
     broker=settings.celery_broker_url,
     backend=settings.celery_result_backend,
-    include=["app.tasks.distribution", "app.tasks.maintenance", "app.tasks.trends", "app.tasks.reports"],
+    include=[
+        "app.tasks.distribution",
+        "app.tasks.maintenance",
+        "app.tasks.trends",
+        "app.tasks.reports",
+        "app.tasks.support",
+    ],
 )
 
 celery_app.conf.task_routes = {}

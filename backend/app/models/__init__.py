@@ -16,6 +16,8 @@ from app.models.schedule import Schedule
 from app.models.site import Site
 from app.models.subscription import Subscription
 from app.models.subscription_plan import SubscriptionPlan
+from app.models.support_config import SupportConfig
+from app.models.support_message import SupportMessage
 from app.models.trend import Trend, TrendFetchLog
 from app.models.user import User
 from app.models.user_session import UserSession
@@ -43,4 +45,6 @@ __all__ = [
     "GeoipConfig",
     "UserSession",
     "SubscriptionPlan",
+    "SupportMessage",
+    "SupportConfig",
 ]

@@ -37,6 +37,7 @@ from app.schemas.admin import (
     AdminPlanIn,
     AdminPlanOut,
     AdminPlanUpdateIn,
+    AdminSupportConversationOut,
     AdminTransactionListResponse,
     AdminTransactionOut,
     BrevoConfigIn,
@@ -46,17 +47,21 @@ from app.schemas.admin import (
     PaystackConfigStatusOut,
     RevenueMonthPoint,
     RevenueSummaryOut,
+    SupportConfigIn,
+    SupportConfigStatusOut,
     UpdateUserPlanRequest,
     UpdateUserRoleRequest,
     UpdateUserStatusRequest,
 )
-from app.services import brevo_config, geoip_config, paystack, paystack_config
+from app.schemas.support import SupportMessageIn, SupportMessageOut
+from app.services import brevo_config, geoip_config, paystack, paystack_config, support_config
 from app.services.paystack import PaystackError, PaystackNotConfigured
 from app.services.activity_log import log_activity
 from app.services.admin_stats import get_admin_summary
 from app.services.admin_traffic import get_traffic_summary, list_traffic_sessions
 from app.services.plans import PlanError, create_plan, delete_plan, get_plan, list_plans, update_plan
 from app.services.site_stats import to_site_out
+from app.services.support import list_admin_inbox, list_thread, send_admin_reply
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -807,3 +812,66 @@ def delete_geoip_config(
         entity_id=current_user.id, request=request,
     )
     return GeoipConfigStatusOut(**geoip_config.get_status(db))
+
+
+# ---------------------------------------------------------------------------
+# Support inbox
+# ---------------------------------------------------------------------------
+
+
+@router.get("/support/conversations", response_model=list[AdminSupportConversationOut])
+def get_support_conversations(current_user: User = Depends(require_role("admin")), db: Session = Depends(get_db)):
+    return [AdminSupportConversationOut(**row) for row in list_admin_inbox(db)]
+
+
+@router.get("/support/conversations/{user_id}/messages", response_model=list[SupportMessageOut])
+def get_support_thread(
+    user_id: uuid.UUID,
+    current_user: User = Depends(require_role("admin")),
+    db: Session = Depends(get_db),
+):
+    return list_thread(db, user_id)
+
+
+@router.post("/support/conversations/{user_id}/messages", response_model=SupportMessageOut)
+def reply_to_support_thread(
+    user_id: uuid.UUID,
+    payload: SupportMessageIn,
+    current_user: User = Depends(require_role("admin")),
+    db: Session = Depends(get_db),
+):
+    return send_admin_reply(db, current_user, user_id, payload.body)
+
+
+@router.get("/config/support", response_model=SupportConfigStatusOut)
+def get_support_config(current_user: User = Depends(require_role("admin")), db: Session = Depends(get_db)):
+    return SupportConfigStatusOut(**support_config.get_status(db))
+
+
+@router.put("/config/support", response_model=SupportConfigStatusOut)
+def set_support_config(
+    payload: SupportConfigIn,
+    request: Request,
+    current_user: User = Depends(require_role("admin")),
+    db: Session = Depends(get_db),
+):
+    support_config.upsert(db, payload.notification_email)
+    log_activity(
+        db, user_id=current_user.id, action="admin_set_support_config", entity_type="config",
+        entity_id=current_user.id, request=request,
+    )
+    return SupportConfigStatusOut(**support_config.get_status(db))
+
+
+@router.delete("/config/support", response_model=SupportConfigStatusOut)
+def delete_support_config(
+    request: Request,
+    current_user: User = Depends(require_role("admin")),
+    db: Session = Depends(get_db),
+):
+    support_config.delete(db)
+    log_activity(
+        db, user_id=current_user.id, action="admin_delete_support_config", entity_type="config",
+        entity_id=current_user.id, request=request,
+    )
+    return SupportConfigStatusOut(**support_config.get_status(db))

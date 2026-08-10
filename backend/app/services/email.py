@@ -1,6 +1,6 @@
 import base64
 import logging
-from datetime import date
+from datetime import date, datetime
 
 import httpx
 from sqlalchemy.orm import Session
@@ -110,3 +110,31 @@ def send_report_email(db: Session, user: User, pdf_bytes: bytes, since: date, un
         html,
         attachments=attachment,
     )
+
+
+def _format_sent_at(sent_at: datetime) -> str:
+    return sent_at.strftime("%b %d, %Y at %I:%M %p UTC")
+
+
+def send_support_alert_email(db: Session, admin_email: str, user_email: str, message_body: str, sent_at: datetime) -> None:
+    link = f"{settings.frontend_url}/admin/support"
+    html = (
+        f"<p>A support message from <strong>{user_email}</strong> has gone unanswered for "
+        f"5 minutes:</p>"
+        f'<blockquote style="margin:12px 0;padding:8px 12px;border-left:3px solid #ccc;">{message_body}</blockquote>'
+        f"<p>Sent {_format_sent_at(sent_at)}.</p>"
+        f'<p><a href="{link}">Open the support inbox</a></p>'
+    )
+    _send(db, admin_email, "Admin", "Unanswered support message — AI Traffic Engine", html)
+
+
+def send_support_reply_email(db: Session, user: User, message_body: str, sent_at: datetime) -> None:
+    link = f"{settings.frontend_url}/support"
+    html = (
+        f"<p>Hi {user.full_name},</p>"
+        f"<p>You've got a new reply from support:</p>"
+        f'<blockquote style="margin:12px 0;padding:8px 12px;border-left:3px solid #ccc;">{message_body}</blockquote>'
+        f"<p>Sent {_format_sent_at(sent_at)}.</p>"
+        f'<p><a href="{link}">View the full conversation</a></p>'
+    )
+    _send(db, user.email, user.full_name, "New reply from support — AI Traffic Engine", html)
