@@ -244,8 +244,8 @@ export default function AdminTraffic() {
                   />
                   <Tooltip
                     {...CHART_TOOLTIP_STYLE}
-                    labelFormatter={(value: string) =>
-                      new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                    labelFormatter={(value) =>
+                      new Date(String(value)).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
                     }
                   />
                   <Legend wrapperStyle={{ fontSize: 12 }} iconType="circle" iconSize={8} />
