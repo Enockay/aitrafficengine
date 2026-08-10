@@ -14,3 +14,7 @@ class SupportMessageOut(BaseModel):
 
 class SupportMessageIn(BaseModel):
     body: str
+
+
+class SupportContactOut(BaseModel):
+    email: str

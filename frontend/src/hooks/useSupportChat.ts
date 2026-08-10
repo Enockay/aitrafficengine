@@ -21,6 +21,17 @@ export function useSupportThreadQuery(enabled: boolean = true) {
   })
 }
 
+export function useSupportContactEmailQuery() {
+  return useQuery({
+    queryKey: ['support-contact-email'],
+    queryFn: async () => {
+      const { data } = await api.get<{ email: string }>('/support/contact-email')
+      return data.email
+    },
+    staleTime: 5 * 60 * 1000,
+  })
+}
+
 export function useSendSupportMessage() {
   const queryClient = useQueryClient()
   return useMutation({

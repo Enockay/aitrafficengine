@@ -92,7 +92,8 @@ export function SupportConfigCard() {
         <div>
           <p className="text-body font-medium text-text-primary">Support alerts</p>
           <p className="text-caption text-text-muted">
-            Emailed when a user's chat message goes unanswered for 5 minutes.
+            Used for unanswered-chat alerts (5 min) and as the public "Suggest an improvement" address
+            in the user dashboard's Support widget.
           </p>
         </div>
         <Badge variant={status.configured ? 'success' : 'warning'}>

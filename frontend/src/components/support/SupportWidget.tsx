@@ -3,12 +3,17 @@ import { Link } from 'react-router-dom'
 import { LifeBuoy, MessageCircle, Search, Sparkles } from 'lucide-react'
 
 import { SupportChatDrawer } from '@/components/support/SupportChatDrawer'
+import { useSupportContactEmailQuery } from '@/hooks/useSupportChat'
 
-const SUPPORT_EMAIL = 'support@aitrafficengine.com'
+// Fallback only for the instant a fresh session hasn't fetched /support/contact-email
+// yet — the real address is admin-set in Integrations > Support.
+const FALLBACK_SUPPORT_EMAIL = 'support@aitrafficengine.com'
 
 export function SupportWidget() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [chatOpen, setChatOpen] = useState(false)
+  const { data: contactEmail } = useSupportContactEmailQuery()
+  const supportEmail = contactEmail ?? FALLBACK_SUPPORT_EMAIL
 
   return (
     <>
@@ -36,7 +41,7 @@ export function SupportWidget() {
                 Contact us
               </button>
               <a
-                href={`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent('Suggestion for AI Traffic Engine')}`}
+                href={`mailto:${supportEmail}?subject=${encodeURIComponent('Suggestion for AI Traffic Engine')}`}
                 onClick={() => setMenuOpen(false)}
                 className="flex items-center gap-2.5 px-4 py-3 text-body-sm text-text-primary transition-colors hover:bg-bg-tertiary"
               >
