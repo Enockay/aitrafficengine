@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { isAxiosError } from 'axios'
-import { FileText, Loader2, Plus, Search } from 'lucide-react'
+import { ChevronLeft, ChevronRight, FileText, Loader2, Plus, Search } from 'lucide-react'
 
 import { PageIntro } from '@/components/layout/PageIntro'
 import { AddPageDialog } from '@/components/pages/AddPageDialog'
@@ -14,10 +14,13 @@ import { useDeletePage, useGeneratePosts, usePagesQuery } from '@/hooks/usePages
 import { useSitesQuery } from '@/hooks/useSites'
 import type { Page } from '@/types/page'
 
+const PAGE_LIMIT = 20
+
 export default function Pages() {
   const [search, setSearch] = useState('')
   const [siteFilter, setSiteFilter] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
+  const [page, setPage] = useState(1)
   const [addOpen, setAddOpen] = useState(false)
   const [detailPage, setDetailPage] = useState<Page | null>(null)
 
@@ -29,11 +32,21 @@ export default function Pages() {
     search: search || undefined,
     site_id: siteFilter || undefined,
     status: statusFilter || undefined,
+    page,
+    limit: PAGE_LIMIT,
   })
   const deletePage = useDeletePage()
   const generatePosts = useGeneratePosts()
 
   const pages = data?.items ?? []
+  const totalPages = data ? Math.max(1, Math.ceil(data.total / PAGE_LIMIT)) : 1
+
+  function updateFilter(setter: (value: string) => void) {
+    return (value: string) => {
+      setter(value)
+      setPage(1)
+    }
+  }
 
   async function handleDelete(page: Page) {
     if (!confirm('Delete this page?')) return
@@ -88,10 +101,10 @@ export default function Pages() {
             placeholder="Search pages..."
             className="pl-9"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => updateFilter(setSearch)(e.target.value)}
           />
         </div>
-        <Select className="w-48" value={siteFilter} onChange={(e) => setSiteFilter(e.target.value)}>
+        <Select className="w-48" value={siteFilter} onChange={(e) => updateFilter(setSiteFilter)(e.target.value)}>
           <option value="">All sites</option>
           {sites.map((site) => (
             <option key={site.id} value={site.id}>
@@ -99,7 +112,7 @@ export default function Pages() {
             </option>
           ))}
         </Select>
-        <Select className="w-40" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+        <Select className="w-40" value={statusFilter} onChange={(e) => updateFilter(setStatusFilter)(e.target.value)}>
           <option value="">All statuses</option>
           <option value="crawled">Crawled</option>
           <option value="pending">Pending</option>
@@ -132,6 +145,32 @@ export default function Pages() {
           />
         ))}
       </div>
+
+      {data && data.total > PAGE_LIMIT && (
+        <div className="mt-4 flex items-center justify-between">
+          <p className="text-caption text-text-muted">
+            Page {page} of {totalPages} · {data.total} pages
+          </p>
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              disabled={page <= 1}
+              onClick={() => setPage((p) => p - 1)}
+              className="rounded-md p-1.5 text-text-muted transition-colors hover:bg-bg-tertiary disabled:opacity-40"
+            >
+              <ChevronLeft size={15} />
+            </button>
+            <button
+              type="button"
+              disabled={page >= totalPages}
+              onClick={() => setPage((p) => p + 1)}
+              className="rounded-md p-1.5 text-text-muted transition-colors hover:bg-bg-tertiary disabled:opacity-40"
+            >
+              <ChevronRight size={15} />
+            </button>
+          </div>
+        </div>
+      )}
 
       <AddPageDialog
         open={addOpen}
