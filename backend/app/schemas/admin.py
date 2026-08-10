@@ -273,3 +273,24 @@ class AdminPlanOut(BaseModel):
     name: str
     price_usd: int
     paystack_plan_code: str
+
+
+class AdminTransactionOut(BaseModel):
+    id: int
+    reference: str
+    status: str
+    amount: float
+    currency: str
+    channel: str | None
+    customer_email: str | None
+    plan_code: str | None
+    gateway_response: str | None
+    paid_at: str | None
+    created_at: str | None
+
+
+class AdminTransactionListResponse(BaseModel):
+    items: list[AdminTransactionOut]
+    total: int
+    page: int
+    per_page: int

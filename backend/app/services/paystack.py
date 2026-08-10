@@ -67,6 +67,29 @@ def initialize_transaction(
     return resp.json()["data"]
 
 
+def list_transactions(db: Session, page: int = 1, per_page: int = 20, status_filter: str | None = None) -> dict:
+    """Lists transactions straight from Paystack (not our local DB) so the admin view
+    reflects every attempt — including failed/abandoned ones we never get a webhook
+    for, not just the successful charges recorded in the Payment table.
+    """
+    headers = _headers(db)
+    params: dict = {"page": page, "perPage": per_page}
+    if status_filter:
+        params["status"] = status_filter
+
+    try:
+        with httpx.Client(timeout=15) as client:
+            resp = client.get(f"{PAYSTACK_BASE_URL}/transaction", headers=headers, params=params)
+    except httpx.HTTPError as exc:
+        raise PaystackError(f"Paystack request failed: {exc}") from exc
+
+    if resp.status_code >= 400:
+        raise PaystackError(f"Paystack list transactions failed ({resp.status_code}): {resp.text}")
+
+    body = resp.json()
+    return {"data": body["data"], "meta": body.get("meta", {})}
+
+
 def verify_transaction(db: Session, reference: str) -> dict:
     headers = _headers(db)
 

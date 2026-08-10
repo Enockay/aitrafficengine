@@ -35,6 +35,8 @@ from app.schemas.admin import (
     AdminUserListResponse,
     AdminUserOut,
     AdminPlanOut,
+    AdminTransactionListResponse,
+    AdminTransactionOut,
     BrevoConfigIn,
     BrevoConfigStatusOut,
     GeoipConfigStatusOut,
@@ -46,7 +48,8 @@ from app.schemas.admin import (
     UpdateUserRoleRequest,
     UpdateUserStatusRequest,
 )
-from app.services import brevo_config, geoip_config, paystack_config
+from app.services import brevo_config, geoip_config, paystack, paystack_config
+from app.services.paystack import PaystackError, PaystackNotConfigured
 from app.services.activity_log import log_activity
 from app.services.admin_stats import get_admin_summary
 from app.services.admin_traffic import get_traffic_summary, list_traffic_sessions
@@ -517,6 +520,45 @@ def get_revenue_summary(current_user: User = Depends(require_role("admin")), db:
             for month, currency, amount in monthly_rows
         ],
     )
+
+
+@router.get("/transactions", response_model=AdminTransactionListResponse)
+def list_paystack_transactions(
+    page: int = Query(default=1, ge=1),
+    per_page: int = Query(default=20, ge=1, le=100),
+    status_filter: str | None = Query(default=None, alias="status"),
+    current_user: User = Depends(require_role("admin")),
+    db: Session = Depends(get_db),
+):
+    """Every Paystack transaction attempt — success, failed, or abandoned — fetched
+    live from Paystack itself rather than our local Payment table, since we only
+    persist successful charges there.
+    """
+    try:
+        result = paystack.list_transactions(db, page=page, per_page=per_page, status_filter=status_filter)
+    except PaystackNotConfigured as exc:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc))
+    except PaystackError as exc:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc))
+
+    items = [
+        AdminTransactionOut(
+            id=tx["id"],
+            reference=tx.get("reference", ""),
+            status=tx.get("status", "unknown"),
+            amount=(tx.get("amount") or 0) / 100,
+            currency=tx.get("currency", "NGN"),
+            channel=tx.get("channel"),
+            customer_email=(tx.get("customer") or {}).get("email"),
+            plan_code=(tx.get("plan") or {}).get("plan_code") if isinstance(tx.get("plan"), dict) else tx.get("plan"),
+            gateway_response=tx.get("gateway_response"),
+            paid_at=tx.get("paid_at"),
+            created_at=tx.get("created_at"),
+        )
+        for tx in result["data"]
+    ]
+    total = result["meta"].get("total", len(items))
+    return AdminTransactionListResponse(items=items, total=total, page=page, per_page=per_page)
 
 
 # ---------------------------------------------------------------------------
