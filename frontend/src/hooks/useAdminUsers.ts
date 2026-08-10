@@ -25,10 +25,30 @@ export interface AdminActivityEntry {
   created_at: string
 }
 
+export interface AdminSessionPageVisit {
+  path: string
+  visited_at: string
+}
+
+export interface AdminSession {
+  id: string
+  ip_address: string | null
+  country: string | null
+  city: string | null
+  browser: string | null
+  os: string | null
+  device_type: string | null
+  started_at: string
+  last_seen_at: string
+  duration_seconds: number
+  pages: AdminSessionPageVisit[]
+}
+
 export interface AdminUserDetail extends AdminUser {
   trial_ends_at: string | null
   current_period_end: string | null
   recent_activity: AdminActivityEntry[]
+  recent_sessions: AdminSession[]
 }
 
 export interface AdminUserListResponse {

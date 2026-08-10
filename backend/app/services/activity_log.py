@@ -9,7 +9,16 @@ from app.services.events import publish_event
 
 
 def client_ip(request: Request | None) -> str | None:
-    if request is None or request.client is None:
+    if request is None:
+        return None
+    # Behind the reverse proxy (Traefik/Coolify) request.client.host is the proxy's
+    # own container IP, not the visitor's — X-Forwarded-For carries the real one and
+    # must be checked first. uvicorn isn't run with --proxy-headers, so this has to be
+    # read manually rather than relying on request.client being rewritten for us.
+    forwarded = request.headers.get("x-forwarded-for")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    if request.client is None:
         return None
     return request.client.host
 

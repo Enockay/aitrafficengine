@@ -50,4 +50,5 @@ class User(UUIDPrimaryKeyMixin, TimestampMixin, SoftDeleteMixin, Base):
     sites: Mapped[list["Site"]] = relationship(back_populates="user")
     platform_accounts: Mapped[list["PlatformAccount"]] = relationship(back_populates="user")
     activity_logs: Mapped[list["ActivityLog"]] = relationship(back_populates="user")
+    sessions: Mapped[list["UserSession"]] = relationship(back_populates="user")
     subscription: Mapped["Subscription | None"] = relationship(back_populates="user", uselist=False)

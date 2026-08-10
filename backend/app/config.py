@@ -97,6 +97,12 @@ class Settings(BaseSettings):
     aws_region: str = "us-east-1"
     s3_bucket_name: str | None = None
 
+    # Path to a MaxMind GeoLite2-City .mmdb file for IP -> location lookups on the
+    # admin user-session tracker. Free to obtain (MaxMind account + license key) but
+    # not something this repo can bundle/download on its own — location just stays
+    # blank until this is set.
+    geoip_db_path: str | None = None
+
     # Billing (Paystack). Public key is safe to expose client-side (checkout init);
     # secret key signs API calls and verifies webhook signatures — never expose it
     # client-side.

@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy import func, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from app.database import get_db
 from app.middleware.auth import require_role
@@ -16,6 +16,7 @@ from app.models.schedule import Schedule
 from app.models.site import Site
 from app.models.subscription import Subscription
 from app.models.user import User
+from app.models.user_session import UserSession
 from app.schemas.admin import (
     AdminActivityLogListResponse,
     AdminActivityLogOut,
@@ -23,6 +24,8 @@ from app.schemas.admin import (
     AdminPaymentOut,
     AdminScheduleListResponse,
     AdminScheduleOut,
+    AdminSessionOut,
+    AdminSessionPageVisit,
     AdminSiteListResponse,
     AdminSiteOut,
     AdminStatsOut,
@@ -162,6 +165,30 @@ def get_user_detail(
         .limit(20)
     ).scalars().all()
 
+    recent_sessions = db.execute(
+        select(UserSession)
+        .where(UserSession.user_id == user.id)
+        .options(selectinload(UserSession.page_visits))
+        .order_by(UserSession.started_at.desc())
+        .limit(20)
+    ).scalars().all()
+    sessions_out = [
+        AdminSessionOut(
+            id=s.id,
+            ip_address=s.ip_address,
+            country=s.country,
+            city=s.city,
+            browser=s.browser,
+            os=s.os,
+            device_type=s.device_type,
+            started_at=s.started_at,
+            last_seen_at=s.last_seen_at,
+            duration_seconds=int((s.last_seen_at - s.started_at).total_seconds()),
+            pages=[AdminSessionPageVisit(path=v.path, visited_at=v.visited_at) for v in s.page_visits],
+        )
+        for s in recent_sessions
+    ]
+
     return AdminUserDetailOut(
         id=user.id,
         email=user.email,
@@ -177,6 +204,7 @@ def get_user_detail(
         trial_ends_at=subscription.trial_ends_at if subscription else None,
         current_period_end=subscription.current_period_end if subscription else None,
         recent_activity=recent_activity,
+        recent_sessions=sessions_out,
     )
 
 

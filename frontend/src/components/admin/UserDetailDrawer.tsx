@@ -1,6 +1,18 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { Activity, FileText, Globe, Loader2, ShieldAlert, X } from 'lucide-react'
+import {
+  Activity,
+  FileText,
+  Globe,
+  Loader2,
+  MapPin,
+  Monitor,
+  Radio,
+  ShieldAlert,
+  Smartphone,
+  Tablet,
+  X,
+} from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -30,6 +42,24 @@ function timeAgo(value: string) {
   if (days === 1) return 'yesterday'
   if (days < 30) return `${days}d ago`
   return formatDate(value)
+}
+
+function formatDuration(seconds: number) {
+  if (seconds < 60) return `${seconds}s`
+  const minutes = Math.floor(seconds / 60)
+  if (minutes < 60) return `${minutes}m ${seconds % 60}s`
+  const hours = Math.floor(minutes / 60)
+  return `${hours}h ${minutes % 60}m`
+}
+
+function formatTime(value: string) {
+  return new Date(value).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+}
+
+function DeviceIcon({ deviceType }: { deviceType: string | null }) {
+  if (deviceType === 'mobile') return <Smartphone size={14} className="text-text-muted" />
+  if (deviceType === 'tablet') return <Tablet size={14} className="text-text-muted" />
+  return <Monitor size={14} className="text-text-muted" />
 }
 
 function formatAction(action: string) {
@@ -232,6 +262,58 @@ export function UserDetailDrawer({ user, onClose }: { user: AdminUser; onClose: 
                         <span className="shrink-0 text-caption text-text-muted">{timeAgo(entry.created_at)}</span>
                       </div>
                       <p className="mt-0.5 text-caption capitalize text-text-muted">{entry.entity_type}</p>
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              <h3 className="mb-3 mt-6 flex items-center gap-1.5 text-h3 text-text-primary">
+                <Globe size={15} className="text-text-muted" /> Traffic
+              </h3>
+              {detail.recent_sessions.length === 0 ? (
+                <p className="text-body-sm text-text-secondary">No sessions recorded yet.</p>
+              ) : (
+                <ul className="space-y-2">
+                  {detail.recent_sessions.map((session) => (
+                    <li key={session.id} className="rounded-md border border-border-default p-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex min-w-0 items-center gap-1.5">
+                          <DeviceIcon deviceType={session.device_type} />
+                          <p className="truncate text-body-sm font-medium text-text-primary">
+                            {session.browser ?? 'Unknown browser'}
+                            {session.os ? ` · ${session.os}` : ''}
+                          </p>
+                        </div>
+                        <span className="shrink-0 text-caption text-text-muted">{timeAgo(session.started_at)}</span>
+                      </div>
+
+                      <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-caption text-text-muted">
+                        <span className="flex items-center gap-1">
+                          <MapPin size={11} />
+                          {session.city || session.country
+                            ? [session.city, session.country].filter(Boolean).join(', ')
+                            : 'Unknown location'}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Radio size={11} />
+                          {session.ip_address ?? 'Unknown IP'}
+                        </span>
+                        <span>Spent {formatDuration(session.duration_seconds)}</span>
+                      </div>
+
+                      {session.pages.length > 0 && (
+                        <div className="mt-2 flex flex-wrap gap-1.5">
+                          {session.pages.map((visit, i) => (
+                            <span
+                              key={`${visit.path}-${i}`}
+                              title={formatTime(visit.visited_at)}
+                              className="rounded-full bg-bg-tertiary px-2 py-0.5 font-mono text-caption text-text-secondary"
+                            >
+                              {visit.path}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </li>
                   ))}
                 </ul>

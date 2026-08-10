@@ -37,10 +37,30 @@ class AdminActivityEntry(BaseModel):
     created_at: datetime
 
 
+class AdminSessionPageVisit(BaseModel):
+    path: str
+    visited_at: datetime
+
+
+class AdminSessionOut(BaseModel):
+    id: uuid.UUID
+    ip_address: str | None
+    country: str | None
+    city: str | None
+    browser: str | None
+    os: str | None
+    device_type: str | None
+    started_at: datetime
+    last_seen_at: datetime
+    duration_seconds: int
+    pages: list[AdminSessionPageVisit]
+
+
 class AdminUserDetailOut(AdminUserOut):
     trial_ends_at: datetime | None
     current_period_end: datetime | None
     recent_activity: list[AdminActivityEntry]
+    recent_sessions: list[AdminSessionOut]
 
 
 class UpdateUserStatusRequest(BaseModel):

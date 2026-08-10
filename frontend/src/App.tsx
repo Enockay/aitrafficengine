@@ -8,6 +8,7 @@ import { PageLayout } from '@/components/layout/PageLayout'
 import { ProtectedRoute } from '@/components/layout/ProtectedRoute'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { useRealtimeEvents } from '@/hooks/useRealtimeEvents'
+import { useTelemetry } from '@/hooks/useTelemetry'
 import { useAuthStore } from '@/stores/authStore'
 import AdminBilling from '@/pages/admin/Billing'
 import AdminIntegrations from '@/pages/admin/Integrations'
@@ -41,12 +42,14 @@ const queryClient = new QueryClient()
 
 function AuthHydrator({ children }: { children: React.ReactNode }) {
   const fetchMe = useAuthStore((state) => state.fetchMe)
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
 
   useEffect(() => {
     fetchMe()
   }, [fetchMe])
 
   useRealtimeEvents()
+  useTelemetry(isAuthenticated)
 
   return <>{children}</>
 }
