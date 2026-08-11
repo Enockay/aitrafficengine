@@ -64,7 +64,14 @@ export default function Posts() {
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-h1 text-text-primary">Posts</h1>
+        <div className="flex items-baseline gap-2.5">
+          <h1 className="text-h1 text-text-primary">Posts</h1>
+          {!isLoading && !isError && (
+            <span className="text-body-sm text-text-muted">
+              {data?.total ?? posts.length} total
+            </span>
+          )}
+        </div>
         <Button onClick={() => setGenerateOpen(true)} disabled={pages.length === 0}>
           <Plus size={16} />
           Generate post

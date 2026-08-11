@@ -20,3 +20,9 @@ export interface ScheduleListResponse {
   items: Schedule[]
   total: number
 }
+
+export interface RescheduleInput {
+  scheduled_at: string
+  timezone?: string
+  platform_account_id?: string
+}

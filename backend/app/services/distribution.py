@@ -87,6 +87,15 @@ def _check_not_duplicate(db: Session, post: Post) -> None:
         )
 
 
+def _validate_scheduled_time(db: Session, post: Post, scheduled_at: datetime) -> None:
+    if scheduled_at <= datetime.now(timezone.utc):
+        raise DistributionError("Scheduled time must be in the future.")
+    try:
+        check_schedule_horizon(db, post.page.site.user, scheduled_at)
+    except QuotaExceededError as exc:
+        raise DistributionError(str(exc)) from exc
+
+
 def schedule_post(
     db: Session,
     post: Post,
@@ -96,12 +105,7 @@ def schedule_post(
 ) -> Schedule:
     if post.status not in SCHEDULABLE_STATUSES:
         raise DistributionError(f"Post must be approved before scheduling (currently '{post.status}').")
-    if scheduled_at <= datetime.now(timezone.utc):
-        raise DistributionError("Scheduled time must be in the future.")
-    try:
-        check_schedule_horizon(db, post.page.site.user, scheduled_at)
-    except QuotaExceededError as exc:
-        raise DistributionError(str(exc)) from exc
+    _validate_scheduled_time(db, post, scheduled_at)
     if _has_local_redirect_link(post):
         raise DistributionError(
             "This post's tracked link points at localhost — it was generated while BACKEND_URL "
@@ -132,6 +136,31 @@ def cancel_schedule(db: Session, schedule: Schedule) -> None:
     if post.status == "scheduled":
         post.status = "approved"
     db.commit()
+
+
+def reschedule(
+    db: Session,
+    schedule: Schedule,
+    scheduled_at: datetime,
+    tz: str = "UTC",
+    platform_account: PlatformAccount | None = None,
+) -> Schedule:
+    """Moves a pending schedule to a new time (and optionally a new account) in place,
+    re-running the same horizon/future-time checks as the initial schedule. The caller
+    is responsible for revoking the old Celery ETA task and enqueuing a new one — this
+    only updates the row.
+    """
+    if schedule.status != "pending":
+        raise DistributionError(f"Only pending schedules can be rescheduled (currently '{schedule.status}').")
+    post = schedule.post
+    _validate_scheduled_time(db, post, scheduled_at)
+    schedule.scheduled_at = scheduled_at
+    schedule.timezone = tz
+    if platform_account is not None:
+        schedule.platform_account_id = platform_account.id
+    db.commit()
+    db.refresh(schedule)
+    return schedule
 
 
 def publish_now(db: Session, post: Post, platform_account: PlatformAccount) -> Post:

@@ -17,7 +17,9 @@ from app.models.schedule import Schedule
 from app.models.site import Site
 from app.models.user import User
 from app.schemas.post import (
+    DailyPostMetrics,
     GenerateVariantsResponse,
+    PostAnalyticsOut,
     PostCreate,
     PostListResponse,
     PostOut,
@@ -206,6 +208,48 @@ def get_post(post_id: uuid.UUID, current_user: User = Depends(get_current_user),
     return _to_out(post)
 
 
+@router.get("/{post_id}/analytics", response_model=PostAnalyticsOut)
+def get_post_analytics(
+    post_id: uuid.UUID, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
+):
+    post = _get_owned_post(db, post_id, current_user)
+    rows = db.execute(
+        select(Analytics).where(Analytics.post_id == post.id).order_by(Analytics.metric_date.asc())
+    ).scalars().all()
+
+    def total(field: str) -> int:
+        return int(sum(getattr(r, field) for r in rows))
+
+    engagement_rate = (sum(r.engagement_rate for r in rows) / len(rows)) if rows else 0.0
+
+    return PostAnalyticsOut(
+        post_id=post.id,
+        platform=post.platform,
+        status=post.status,
+        published_at=post.published_at,
+        published_url=post.published_url,
+        impressions=total("impressions"),
+        clicks=total("clicks"),
+        likes=total("likes"),
+        comments=total("comments"),
+        shares=total("shares"),
+        reach=total("reach"),
+        profile_visits=total("profile_visits"),
+        engagement_rate=round(engagement_rate, 4),
+        daily=[
+            DailyPostMetrics(
+                date=r.metric_date,
+                impressions=r.impressions,
+                clicks=r.clicks,
+                likes=r.likes,
+                comments=r.comments,
+                shares=r.shares,
+            )
+            for r in rows
+        ],
+    )
+
+
 @router.put("/{post_id}", response_model=PostOut)
 def update_post(
     post_id: uuid.UUID,
@@ -372,7 +416,9 @@ def schedule_post(
     except DistributionError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
 
-    publish_scheduled_post.apply_async(args=[str(schedule.id)], eta=schedule.scheduled_at)
+    task = publish_scheduled_post.apply_async(args=[str(schedule.id)], eta=schedule.scheduled_at)
+    schedule.celery_task_id = task.id
+    db.commit()
 
     log_activity(
         db,

@@ -22,6 +22,7 @@ export interface Subscription {
 
 export interface Usage {
   plan_code: string | null
+  plan_name: string | null
   schedule_horizon_days: number | null
   sites_used: number
   sites_limit: number | null

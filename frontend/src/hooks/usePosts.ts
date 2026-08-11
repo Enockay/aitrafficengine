@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import api from '@/lib/api'
-import type { Post, PostListResponse, PostUpdateInput } from '@/types/post'
+import type { Post, PostAnalytics, PostListResponse, PostUpdateInput } from '@/types/post'
 import type { Schedule } from '@/types/schedule'
 import type { GenerateVariantsResponse } from '@/types/variant'
 
@@ -20,6 +20,18 @@ export function usePostsQuery(filters: PostsFilters) {
       const { data } = await api.get<PostListResponse>('/posts', { params: filters })
       return data
     },
+    staleTime: 60 * 1000,
+  })
+}
+
+export function usePostAnalyticsQuery(postId: string | null | undefined, enabled: boolean) {
+  return useQuery({
+    queryKey: ['posts', 'analytics', postId],
+    queryFn: async () => {
+      const { data } = await api.get<PostAnalytics>(`/posts/${postId}/analytics`)
+      return data
+    },
+    enabled: enabled && !!postId,
     staleTime: 60 * 1000,
   })
 }

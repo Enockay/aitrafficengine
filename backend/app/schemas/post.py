@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 
 from pydantic import BaseModel, Field
 
@@ -69,3 +69,29 @@ class VariantEntry(BaseModel):
 class GenerateVariantsResponse(BaseModel):
     variant_group_id: uuid.UUID
     variants: list[VariantEntry]
+
+
+class DailyPostMetrics(BaseModel):
+    date: date
+    impressions: int
+    clicks: int
+    likes: int
+    comments: int
+    shares: int
+
+
+class PostAnalyticsOut(BaseModel):
+    post_id: uuid.UUID
+    platform: str
+    status: str
+    published_at: datetime | None
+    published_url: str | None
+    impressions: int
+    clicks: int
+    likes: int
+    comments: int
+    shares: int
+    reach: int
+    profile_visits: int
+    engagement_rate: float
+    daily: list[DailyPostMetrics]

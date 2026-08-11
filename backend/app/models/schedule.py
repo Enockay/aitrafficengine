@@ -26,6 +26,7 @@ class Schedule(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     retry_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
     published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    celery_task_id: Mapped[str | None] = mapped_column(String(155), nullable=True)
 
     post: Mapped["Post"] = relationship(back_populates="schedules")
     platform_account: Mapped["PlatformAccount"] = relationship(back_populates="schedules")

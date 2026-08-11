@@ -23,6 +23,7 @@ class SubscriptionOut(BaseModel):
 
 class UsageOut(BaseModel):
     plan_code: str | None
+    plan_name: str | None
     schedule_horizon_days: int | None
     sites_used: int
     sites_limit: int | None

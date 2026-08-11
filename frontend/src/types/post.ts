@@ -36,6 +36,32 @@ export interface PostUpdateInput {
   tracked_url?: string | null
 }
 
+export interface DailyPostMetrics {
+  date: string
+  impressions: number
+  clicks: number
+  likes: number
+  comments: number
+  shares: number
+}
+
+export interface PostAnalytics {
+  post_id: string
+  platform: string
+  status: string
+  published_at: string | null
+  published_url: string | null
+  impressions: number
+  clicks: number
+  likes: number
+  comments: number
+  shares: number
+  reach: number
+  profile_visits: number
+  engagement_rate: number
+  daily: DailyPostMetrics[]
+}
+
 export const TWEET_DELIMITER = '\n\n---\n\n'
 
 export function splitTweets(body: string | null): string[] {

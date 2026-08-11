@@ -10,6 +10,12 @@ class ScheduleCreate(BaseModel):
     timezone: str = "UTC"
 
 
+class ScheduleReschedule(BaseModel):
+    scheduled_at: datetime
+    timezone: str = "UTC"
+    platform_account_id: uuid.UUID | None = None
+
+
 class ScheduleOut(BaseModel):
     id: uuid.UUID
     post_id: uuid.UUID

@@ -68,6 +68,7 @@ def get_usage_summary(db: Session, user: User) -> dict:
     now = datetime.now(timezone.utc)
     return {
         "plan_code": plan.code if plan else None,
+        "plan_name": plan.name if plan else None,
         "schedule_horizon_days": plan.schedule_horizon_days if plan else None,
         "sites_used": _count_sites(db, user),
         "sites_limit": plan.max_sites if plan else None,

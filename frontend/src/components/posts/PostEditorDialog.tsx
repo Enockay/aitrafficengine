@@ -2,20 +2,42 @@ import { useEffect, useMemo, useState, type ChangeEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
 import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts'
+import {
   AlertTriangle,
+  BarChart3,
+  CalendarClock,
+  CalendarDays,
   CheckCircle2,
+  Clock,
   ExternalLink,
+  Eye,
+  Heart,
   ImageIcon,
   Loader2,
+  MessageCircle,
+  MousePointerClick,
   Plus,
   Rocket,
+  Share2,
+  Sparkles,
   Trash2,
+  Users,
   Wrench,
   X,
+  XCircle,
 } from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Calendar } from '@/components/ui/calendar'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -32,6 +54,7 @@ import {
   useApprovePost,
   useDeletePost,
   useDeletePostMedia,
+  usePostAnalyticsQuery,
   usePublishPost,
   useRepairPostLink,
   useSchedulePost,
@@ -39,8 +62,9 @@ import {
   useUploadPostMedia,
   useVariantGroupQuery,
 } from '@/hooks/usePosts'
+import { useCancelSchedule, useRescheduleSchedule, useSchedulesQuery } from '@/hooks/useSchedules'
 import { getErrorMessage } from '@/lib/errors'
-import { nextOccurrence, toDatetimeLocalValue } from '@/lib/optimalTime'
+import { nextOccurrence } from '@/lib/optimalTime'
 import { joinTweets, splitTweets, type Post } from '@/types/post'
 
 const TWEET_CHAR_LIMIT = 280
@@ -71,6 +95,54 @@ interface PostEditorDialogProps {
   onOpenChange: (open: boolean) => void
 }
 
+function combineDateAndTime(date: Date, time: string): Date {
+  const [hours, minutes] = time.split(':').map(Number)
+  const combined = new Date(date)
+  combined.setHours(hours || 0, minutes || 0, 0, 0)
+  return combined
+}
+
+function toTimeValue(date: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${pad(date.getHours())}:${pad(date.getMinutes())}`
+}
+
+function formatDateTime(value: string | null): string {
+  if (!value) return '—'
+  return new Date(value).toLocaleString(undefined, {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  })
+}
+
+function formatShortDate(value: string) {
+  return new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+}
+
+function SectionLabel({ icon, children }: { icon: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <div className="flex items-center gap-1.5 text-caption font-semibold uppercase tracking-wide text-text-muted">
+      {icon}
+      {children}
+    </div>
+  )
+}
+
+function MetricTile({ icon, label, value }: { icon: React.ReactNode; label: string; value: string | number }) {
+  return (
+    <div className="rounded-md border border-border-default bg-bg-primary px-3 py-2.5">
+      <div className="flex items-center gap-1.5 text-text-muted">
+        {icon}
+        <span className="text-caption">{label}</span>
+      </div>
+      <p className="mt-1 text-h3 text-text-primary">{value}</p>
+    </div>
+  )
+}
+
 export function PostEditorDialog({ post, pageTitle, pageUrl, onOpenChange }: PostEditorDialogProps) {
   const [tweets, setTweets] = useState<string[]>([''])
   const [bodyText, setBodyText] = useState('')
@@ -79,9 +151,13 @@ export function PostEditorDialog({ post, pageTitle, pageUrl, onOpenChange }: Pos
   const [hashtagsInput, setHashtagsInput] = useState('')
   const [trackedUrl, setTrackedUrl] = useState('')
   const [accountId, setAccountId] = useState('')
-  const [scheduledAt, setScheduledAt] = useState('')
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null)
+  const [selectedTime, setSelectedTime] = useState('09:00')
   const [mediaUrl, setMediaUrl] = useState<string | null>(null)
   const [mediaType, setMediaType] = useState<'image' | 'video' | null>(null)
+  // Local status/publish-state override so approving/scheduling/publishing reflects
+  // immediately without the caller having to re-supply a fresh `post` prop.
+  const [livePost, setLivePost] = useState<Post | null>(post)
 
   const updatePost = useUpdatePost()
   const deletePost = useDeletePost()
@@ -91,14 +167,34 @@ export function PostEditorDialog({ post, pageTitle, pageUrl, onOpenChange }: Pos
   const repairPostLink = useRepairPostLink()
   const uploadPostMedia = useUploadPostMedia()
   const deletePostMedia = useDeletePostMedia()
+  const cancelSchedule = useCancelSchedule()
+  const reschedulePost = useRescheduleSchedule()
   const { data: platforms } = usePlatformsQuery()
   const { data: usage } = useUsageQuery()
   const { data: optimalTimes } = useOptimalTimesQuery(post?.platform)
   const { data: variantGroup } = useVariantGroupQuery(post?.variant_group_id)
+  const { data: schedulesData } = useSchedulesQuery('pending', !!post)
+  const { data: analytics, isLoading: analyticsLoading } = usePostAnalyticsQuery(
+    post?.id,
+    livePost?.status === 'published'
+  )
 
   const accounts = useMemo(
     () => platforms?.find((p) => p.platform === post?.platform)?.accounts ?? [],
     [platforms, post?.platform]
+  )
+
+  const mySchedule = useMemo(
+    () => schedulesData?.items.find((s) => s.post_id === post?.id) ?? null,
+    [schedulesData, post?.id]
+  )
+
+  const otherScheduledDates = useMemo(
+    () =>
+      (schedulesData?.items ?? [])
+        .filter((s) => s.id !== mySchedule?.id)
+        .map((s) => new Date(s.scheduled_at)),
+    [schedulesData, mySchedule]
   )
 
   const isTwitter = post?.platform === 'twitter'
@@ -110,6 +206,7 @@ export function PostEditorDialog({ post, pageTitle, pageUrl, onOpenChange }: Pos
 
   useEffect(() => {
     if (post) {
+      setLivePost(post)
       if (post.platform === 'twitter') {
         setTweets(splitTweets(post.body))
       } else {
@@ -118,7 +215,8 @@ export function PostEditorDialog({ post, pageTitle, pageUrl, onOpenChange }: Pos
       setTitleText(['reddit', 'tumblr', 'pinterest'].includes(post.platform) ? (post.title ?? '') : '')
       setHashtagsInput((post.hashtags ?? []).join(', '))
       setTrackedUrl(post.tracked_url ?? '')
-      setScheduledAt('')
+      setSelectedDate(null)
+      setSelectedTime('09:00')
       setAccountId('')
       setMediaUrl(post.media_url ?? null)
       setMediaType(post.media_type ?? null)
@@ -131,7 +229,18 @@ export function PostEditorDialog({ post, pageTitle, pageUrl, onOpenChange }: Pos
     }
   }, [accounts, accountId])
 
-  if (!post) {
+  // Seed the reschedule picker from the post's live schedule once it loads.
+  useEffect(() => {
+    if (mySchedule && livePost?.status === 'scheduled') {
+      const at = new Date(mySchedule.scheduled_at)
+      setSelectedDate(at)
+      setSelectedTime(toTimeValue(at))
+      setAccountId(mySchedule.platform_account_id)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mySchedule?.id])
+
+  if (!post || !livePost) {
     return <Dialog open={false} onOpenChange={onOpenChange} />
   }
 
@@ -145,9 +254,10 @@ export function PostEditorDialog({ post, pageTitle, pageUrl, onOpenChange }: Pos
   const maxScheduleDate =
     usage?.schedule_horizon_days != null
       ? new Date(Date.now() + usage.schedule_horizon_days * 24 * 60 * 60 * 1000)
-      : null
-  const maxScheduleAt = maxScheduleDate ? toDatetimeLocalValue(maxScheduleDate) : undefined
-  const isOverHorizon = !!(maxScheduleDate && scheduledAt && new Date(scheduledAt) > maxScheduleDate)
+      : undefined
+  const scheduledAtDate = selectedDate ? combineDateAndTime(selectedDate, selectedTime) : null
+  const isOverHorizon = !!(maxScheduleDate && scheduledAtDate && scheduledAtDate > maxScheduleDate)
+  const isInPast = !!scheduledAtDate && scheduledAtDate <= new Date()
 
   const hashtags = hashtagsInput
     .split(',')
@@ -187,6 +297,7 @@ export function PostEditorDialog({ post, pageTitle, pageUrl, onOpenChange }: Pos
         input: { title, body, hashtags: isReddit || isPinterest ? [] : hashtags, tracked_url: trackedUrl || null },
       })
       toast.success('Post saved')
+      onOpenChange(false)
     } catch {
       toast.error('Failed to save post')
     }
@@ -194,8 +305,9 @@ export function PostEditorDialog({ post, pageTitle, pageUrl, onOpenChange }: Pos
 
   async function handleApprove() {
     try {
-      await approvePost.mutateAsync(post!.id)
-      toast.success('Post approved')
+      const updated = await approvePost.mutateAsync(post!.id)
+      setLivePost(updated)
+      toast.success('Post approved — pick a time to publish it below')
     } catch {
       toast.error('Failed to approve post')
     }
@@ -252,11 +364,11 @@ export function PostEditorDialog({ post, pageTitle, pageUrl, onOpenChange }: Pos
   }
 
   async function handleSchedule() {
-    if (!accountId || !scheduledAt) {
-      toast.error('Pick an account and a time first')
+    if (!accountId || !scheduledAtDate) {
+      toast.error('Pick an account, date, and time first')
       return
     }
-    if (maxScheduleDate && new Date(scheduledAt) > maxScheduleDate) {
+    if (maxScheduleDate && scheduledAtDate > maxScheduleDate) {
       toast.error(`Your plan allows scheduling up to ${usage?.schedule_horizon_days} days ahead`)
       return
     }
@@ -264,12 +376,46 @@ export function PostEditorDialog({ post, pageTitle, pageUrl, onOpenChange }: Pos
       await schedulePost.mutateAsync({
         id: post!.id,
         platform_account_id: accountId,
-        scheduled_at: new Date(scheduledAt).toISOString(),
+        scheduled_at: scheduledAtDate.toISOString(),
       })
       toast.success('Post scheduled')
       onOpenChange(false)
     } catch (error) {
       toast.error(getErrorMessage(error, 'Failed to schedule post'))
+    }
+  }
+
+  async function handleReschedule() {
+    if (!mySchedule || !scheduledAtDate) {
+      toast.error('Pick a date and time first')
+      return
+    }
+    if (maxScheduleDate && scheduledAtDate > maxScheduleDate) {
+      toast.error(`Your plan allows scheduling up to ${usage?.schedule_horizon_days} days ahead`)
+      return
+    }
+    try {
+      await reschedulePost.mutateAsync({
+        id: mySchedule.id,
+        scheduled_at: scheduledAtDate.toISOString(),
+        platform_account_id: accountId || undefined,
+      })
+      toast.success('Post rescheduled')
+      onOpenChange(false)
+    } catch (error) {
+      toast.error(getErrorMessage(error, 'Failed to reschedule post'))
+    }
+  }
+
+  async function handleCancelSchedule() {
+    if (!mySchedule) return
+    if (!confirm('Cancel this schedule? The post goes back to approved.')) return
+    try {
+      await cancelSchedule.mutateAsync(mySchedule.id)
+      setLivePost((p) => (p ? { ...p, status: 'approved' } : p))
+      toast.success('Schedule cancelled')
+    } catch (error) {
+      toast.error(getErrorMessage(error, 'Failed to cancel schedule'))
     }
   }
 
@@ -279,7 +425,8 @@ export function PostEditorDialog({ post, pageTitle, pageUrl, onOpenChange }: Pos
       return
     }
     try {
-      await publishPost.mutateAsync({ id: post!.id, platform_account_id: accountId })
+      const updated = await publishPost.mutateAsync({ id: post!.id, platform_account_id: accountId })
+      setLivePost(updated)
       toast.success('Post published')
       onOpenChange(false)
     } catch (error) {
@@ -293,6 +440,8 @@ export function PostEditorDialog({ post, pageTitle, pageUrl, onOpenChange }: Pos
       ? bodyText.length > LINKEDIN_CHAR_LIMIT
       : false
 
+  const chartData = analytics?.daily.map((d) => ({ ...d, label: formatShortDate(d.date) })) ?? []
+
   return (
     <Dialog open={!!post} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[88vh] w-full max-w-4xl overflow-y-auto">
@@ -300,7 +449,7 @@ export function PostEditorDialog({ post, pageTitle, pageUrl, onOpenChange }: Pos
           <div className="flex items-center gap-2">
             <DialogTitle>Edit post</DialogTitle>
             <Badge variant="info">{PLATFORM_LABEL[post.platform] ?? post.platform}</Badge>
-            <Badge variant={STATUS_VARIANT[post.status] ?? 'neutral'}>{post.status}</Badge>
+            <Badge variant={STATUS_VARIANT[livePost.status] ?? 'neutral'}>{livePost.status}</Badge>
           </div>
           {pageTitle && (
             <p className="flex items-center gap-1 text-body-sm text-text-secondary">
@@ -517,13 +666,14 @@ export function PostEditorDialog({ post, pageTitle, pageUrl, onOpenChange }: Pos
               )}
             </div>
 
-            {(post.status === 'approved' || post.status === 'failed') && (
-              <div className="space-y-3 rounded-md border border-border-default bg-bg-surface p-3">
+            {(livePost.status === 'approved' || livePost.status === 'failed') && (
+              <div className="space-y-3 rounded-lg border border-border-default bg-bg-surface p-3.5">
                 <div className="flex items-center justify-between">
-                  <Label>Publish</Label>
+                  <SectionLabel icon={<Rocket size={13} />}>Publish</SectionLabel>
                   {usage?.schedule_horizon_days != null && (
                     <span className="text-caption text-text-muted">
-                      Up to {usage.schedule_horizon_days} days ahead
+                      {usage.plan_name ? `${usage.plan_name} plan · ` : ''}
+                      up to {usage.schedule_horizon_days} days ahead
                     </span>
                   )}
                 </div>
@@ -560,7 +710,10 @@ export function PostEditorDialog({ post, pageTitle, pageUrl, onOpenChange }: Pos
                                 type="button"
                                 disabled={locked}
                                 title={locked ? 'Beyond your plan’s scheduling horizon — upgrade to pick this' : undefined}
-                                onClick={() => setScheduledAt(toDatetimeLocalValue(occursAt))}
+                                onClick={() => {
+                                  setSelectedDate(occursAt)
+                                  setSelectedTime(toTimeValue(occursAt))
+                                }}
                                 className={
                                   locked
                                     ? 'cursor-not-allowed rounded-full border border-border-default bg-bg-surface px-2.5 py-1 text-caption text-text-muted opacity-50'
@@ -574,28 +727,52 @@ export function PostEditorDialog({ post, pageTitle, pageUrl, onOpenChange }: Pos
                         </div>
                       </div>
                     )}
-                    <div className="flex items-center gap-2">
-                      <Input
-                        type="datetime-local"
-                        value={scheduledAt}
-                        onChange={(e) => setScheduledAt(e.target.value)}
-                        max={maxScheduleAt}
-                        className="flex-1"
+
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-[auto_1fr]">
+                      <Calendar
+                        selectedDate={selectedDate}
+                        onSelectDate={setSelectedDate}
+                        minDate={new Date()}
+                        maxDate={maxScheduleDate}
+                        markedDates={otherScheduledDates}
                       />
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={handleSchedule}
-                        disabled={schedulePost.isPending || !scheduledAt || isOverHorizon}
-                      >
-                        {schedulePost.isPending ? (
-                          <Loader2 size={14} className="animate-spin" />
-                        ) : (
-                          <Rocket size={14} />
+                      <div className="flex flex-col gap-2">
+                        <div className="space-y-1">
+                          <Label className="text-caption text-text-muted">Time</Label>
+                          <Input
+                            type="time"
+                            value={selectedTime}
+                            onChange={(e) => setSelectedTime(e.target.value)}
+                          />
+                        </div>
+                        {selectedDate && (
+                          <p className="flex items-center gap-1.5 text-caption text-text-secondary">
+                            <CalendarClock size={12} />
+                            {formatDateTime(scheduledAtDate?.toISOString() ?? null)}
+                          </p>
                         )}
-                        Schedule
-                      </Button>
+                        {otherScheduledDates.length > 0 && (
+                          <p className="flex items-center gap-1.5 text-caption text-text-muted">
+                            <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-accent-yellow" />
+                            Dots mark days you already have another post scheduled
+                          </p>
+                        )}
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={handleSchedule}
+                          disabled={schedulePost.isPending || !selectedDate || isOverHorizon || isInPast}
+                        >
+                          {schedulePost.isPending ? (
+                            <Loader2 size={14} className="animate-spin" />
+                          ) : (
+                            <CalendarDays size={14} />
+                          )}
+                          Schedule
+                        </Button>
+                      </div>
                     </div>
+
                     {isOverHorizon && (
                       <div className="flex items-center justify-between gap-2 rounded-md border border-accent-yellow/40 bg-accent-yellow/10 px-2.5 py-2">
                         <p className="text-caption text-text-secondary">
@@ -609,6 +786,9 @@ export function PostEditorDialog({ post, pageTitle, pageUrl, onOpenChange }: Pos
                         </Link>
                       </div>
                     )}
+                    {isInPast && !isOverHorizon && (
+                      <p className="text-caption text-accent-red">Pick a time in the future.</p>
+                    )}
                     <Button
                       size="sm"
                       className="w-full"
@@ -618,7 +798,7 @@ export function PostEditorDialog({ post, pageTitle, pageUrl, onOpenChange }: Pos
                       {publishPost.isPending ? (
                         <Loader2 size={14} className="animate-spin" />
                       ) : (
-                        <Rocket size={14} />
+                        <Sparkles size={14} />
                       )}
                       Publish now
                     </Button>
@@ -627,28 +807,217 @@ export function PostEditorDialog({ post, pageTitle, pageUrl, onOpenChange }: Pos
               </div>
             )}
 
-            {post.status === 'scheduled' && (
-              <p className="text-body-sm text-text-secondary">
-                This post is scheduled. Manage or cancel it from the{' '}
-                <Link to="/scheduler" className="text-accent-blue hover:underline">
-                  Scheduler
-                </Link>
-                .
-              </p>
+            {livePost.status === 'scheduled' && (
+              <div className="space-y-3 rounded-lg border border-border-default bg-bg-surface p-3.5">
+                <div className="flex items-center justify-between">
+                  <SectionLabel icon={<CalendarClock size={13} />}>Scheduled</SectionLabel>
+                  {usage?.schedule_horizon_days != null && (
+                    <span className="text-caption text-text-muted">
+                      {usage.plan_name ? `${usage.plan_name} plan · ` : ''}
+                      up to {usage.schedule_horizon_days} days ahead
+                    </span>
+                  )}
+                </div>
+
+                {mySchedule ? (
+                  <>
+                    <div className="flex items-center justify-between rounded-md border border-border-default bg-bg-primary px-3 py-2">
+                      <div className="flex items-center gap-1.5 text-body-sm text-text-primary">
+                        <Clock size={14} className="text-text-muted" />
+                        Goes out {formatDateTime(mySchedule.scheduled_at)}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleCancelSchedule}
+                        disabled={cancelSchedule.isPending}
+                        className="flex items-center gap-1 text-caption text-text-muted hover:text-accent-red"
+                      >
+                        {cancelSchedule.isPending ? (
+                          <Loader2 size={12} className="animate-spin" />
+                        ) : (
+                          <XCircle size={12} />
+                        )}
+                        Cancel
+                      </button>
+                    </div>
+
+                    <Label className="text-caption text-text-muted">Reschedule</Label>
+                    {accounts.length > 0 && (
+                      <Select value={accountId} onChange={(e) => setAccountId(e.target.value)}>
+                        {accounts.map((account) => (
+                          <option key={account.id} value={account.id}>
+                            {account.account_handle
+                              ? `@${account.account_handle}`
+                              : (account.account_name ?? account.id)}
+                          </option>
+                        ))}
+                      </Select>
+                    )}
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-[auto_1fr]">
+                      <Calendar
+                        selectedDate={selectedDate}
+                        onSelectDate={setSelectedDate}
+                        minDate={new Date()}
+                        maxDate={maxScheduleDate}
+                        markedDates={otherScheduledDates}
+                      />
+                      <div className="flex flex-col gap-2">
+                        <div className="space-y-1">
+                          <Label className="text-caption text-text-muted">Time</Label>
+                          <Input
+                            type="time"
+                            value={selectedTime}
+                            onChange={(e) => setSelectedTime(e.target.value)}
+                          />
+                        </div>
+                        {selectedDate && (
+                          <p className="flex items-center gap-1.5 text-caption text-text-secondary">
+                            <CalendarClock size={12} />
+                            {formatDateTime(scheduledAtDate?.toISOString() ?? null)}
+                          </p>
+                        )}
+                        {otherScheduledDates.length > 0 && (
+                          <p className="flex items-center gap-1.5 text-caption text-text-muted">
+                            <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-accent-yellow" />
+                            Dots mark other posts already scheduled that day
+                          </p>
+                        )}
+                        {isOverHorizon && (
+                          <p className="text-caption text-accent-yellow">
+                            Beyond your {usage?.schedule_horizon_days}-day scheduling limit.
+                          </p>
+                        )}
+                        {isInPast && <p className="text-caption text-accent-red">Pick a time in the future.</p>}
+                        <Button
+                          size="sm"
+                          onClick={handleReschedule}
+                          disabled={reschedulePost.isPending || !selectedDate || isOverHorizon || isInPast}
+                        >
+                          {reschedulePost.isPending ? (
+                            <Loader2 size={14} className="animate-spin" />
+                          ) : (
+                            <CalendarDays size={14} />
+                          )}
+                          Save new time
+                        </Button>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <p className="text-body-sm text-text-secondary">
+                    Loading schedule details —{' '}
+                    <Link to="/scheduler" className="text-accent-blue hover:underline">
+                      or manage it from the Scheduler
+                    </Link>
+                    .
+                  </p>
+                )}
+              </div>
             )}
 
-            {post.status === 'published' && post.published_url && (
-              <p className="text-body-sm text-text-secondary">
-                Published —{' '}
-                <a
-                  href={post.published_url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-accent-blue hover:underline"
-                >
-                  view live
-                </a>
-              </p>
+            {livePost.status === 'published' && (
+              <div className="space-y-3 rounded-lg border border-border-default bg-bg-surface p-3.5">
+                <div className="flex items-center justify-between">
+                  <SectionLabel icon={<BarChart3 size={13} />}>Performance</SectionLabel>
+                  {post.published_url && (
+                    <a
+                      href={post.published_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex items-center gap-1 text-caption font-medium text-accent-blue hover:underline"
+                    >
+                      View live <ExternalLink size={11} />
+                    </a>
+                  )}
+                </div>
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-body-sm text-text-secondary">
+                  <span className="flex items-center gap-1.5">
+                    <Clock size={13} className="text-text-muted" />
+                    {formatDateTime(post.published_at)}
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <Rocket size={13} className="text-text-muted" />
+                    {PLATFORM_LABEL[post.platform] ?? post.platform}
+                  </span>
+                </div>
+
+                {analyticsLoading && (
+                  <div className="flex justify-center py-6">
+                    <Loader2 size={18} className="animate-spin text-text-muted" />
+                  </div>
+                )}
+
+                {analytics && !analyticsLoading && (
+                  <>
+                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                      <MetricTile icon={<Eye size={12} />} label="Impressions" value={analytics.impressions} />
+                      <MetricTile
+                        icon={<MousePointerClick size={12} />}
+                        label="Clicks"
+                        value={analytics.clicks}
+                      />
+                      <MetricTile icon={<Heart size={12} />} label="Likes" value={analytics.likes} />
+                      <MetricTile
+                        icon={<MessageCircle size={12} />}
+                        label="Comments"
+                        value={analytics.comments}
+                      />
+                      <MetricTile icon={<Share2 size={12} />} label="Shares" value={analytics.shares} />
+                      <MetricTile icon={<Users size={12} />} label="Reach" value={analytics.reach} />
+                    </div>
+
+                    {chartData.length > 0 ? (
+                      <div className="h-40">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <AreaChart data={chartData}>
+                            <defs>
+                              <linearGradient id="postClicksGradient" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stopColor="rgb(var(--chart-1))" stopOpacity={0.4} />
+                                <stop offset="100%" stopColor="rgb(var(--chart-1))" stopOpacity={0} />
+                              </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" stroke="rgb(var(--border-default))" vertical={false} />
+                            <XAxis
+                              dataKey="label"
+                              tick={{ fill: 'rgb(var(--text-muted))', fontSize: 10 }}
+                              axisLine={{ stroke: 'rgb(var(--border-default))' }}
+                              tickLine={false}
+                              interval="preserveStartEnd"
+                            />
+                            <YAxis
+                              tick={{ fill: 'rgb(var(--text-muted))', fontSize: 10 }}
+                              axisLine={false}
+                              tickLine={false}
+                              allowDecimals={false}
+                              width={24}
+                            />
+                            <Tooltip
+                              contentStyle={{
+                                background: 'rgb(var(--bg-surface))',
+                                border: '1px solid rgb(var(--border-default))',
+                                borderRadius: 8,
+                                fontSize: 12,
+                              }}
+                              labelStyle={{ color: 'rgb(var(--text-primary))' }}
+                            />
+                            <Area
+                              type="monotone"
+                              dataKey="clicks"
+                              stroke="rgb(var(--chart-1))"
+                              strokeWidth={2}
+                              fill="url(#postClicksGradient)"
+                            />
+                          </AreaChart>
+                        </ResponsiveContainer>
+                      </div>
+                    ) : (
+                      <p className="py-2 text-center text-caption text-text-muted">
+                        No engagement data yet — check back once platform analytics sync in.
+                      </p>
+                    )}
+                  </>
+                )}
+              </div>
             )}
           </div>
 
@@ -687,7 +1056,7 @@ export function PostEditorDialog({ post, pageTitle, pageUrl, onOpenChange }: Pos
             <Trash2 size={14} /> Delete
           </button>
           <div className="flex items-center gap-2">
-            {post.status === 'draft' && (
+            {livePost.status === 'draft' && (
               <Button variant="secondary" onClick={handleApprove} disabled={approvePost.isPending}>
                 {approvePost.isPending ? (
                   <Loader2 size={16} className="animate-spin" />
