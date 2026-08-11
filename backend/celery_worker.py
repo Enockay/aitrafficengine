@@ -36,4 +36,10 @@ celery_app.conf.beat_schedule = {
         "task": "send_due_user_reports",
         "schedule": timedelta(hours=1),
     },
+    "sweep-missed-schedules": {
+        "task": "sweep_missed_schedules",
+        # Short interval — this is the safety net for posts whose ETA task never got
+        # consumed (see app/tasks/distribution.py), so it needs to catch up quickly.
+        "schedule": timedelta(minutes=2),
+    },
 }

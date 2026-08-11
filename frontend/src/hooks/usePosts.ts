@@ -24,6 +24,18 @@ export function usePostsQuery(filters: PostsFilters) {
   })
 }
 
+export function usePostQuery(postId: string | null | undefined) {
+  return useQuery({
+    queryKey: ['posts', postId],
+    queryFn: async () => {
+      const { data } = await api.get<Post>(`/posts/${postId}`)
+      return data
+    },
+    enabled: !!postId,
+    staleTime: 15 * 1000,
+  })
+}
+
 export function usePostAnalyticsQuery(postId: string | null | undefined, enabled: boolean) {
   return useQuery({
     queryKey: ['posts', 'analytics', postId],

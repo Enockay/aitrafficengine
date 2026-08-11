@@ -5,7 +5,9 @@ import { CalendarClock, Loader2, X } from 'lucide-react'
 import { PageIntro } from '@/components/layout/PageIntro'
 import { Badge } from '@/components/ui/badge'
 import { Select } from '@/components/ui/select'
+import { PostEditorDialog } from '@/components/posts/PostEditorDialog'
 import { useCancelSchedule, useSchedulesQuery } from '@/hooks/useSchedules'
+import { usePostQuery } from '@/hooks/usePosts'
 import type { Schedule } from '@/types/schedule'
 
 const STATUS_VARIANT: Record<string, 'success' | 'warning' | 'error' | 'neutral'> = {
@@ -34,8 +36,10 @@ function formatDateTime(value: string) {
 
 export default function Scheduler() {
   const [statusFilter, setStatusFilter] = useState('')
+  const [selectedPostId, setSelectedPostId] = useState<string | null>(null)
   const { data, isLoading, isError } = useSchedulesQuery(statusFilter || undefined)
   const cancelSchedule = useCancelSchedule()
+  const { data: selectedPost } = usePostQuery(selectedPostId)
 
   const schedules = data?.items ?? []
 
@@ -102,7 +106,11 @@ export default function Scheduler() {
               </tr>
             )}
             {schedules.map((schedule) => (
-              <tr key={schedule.id} className="border-b border-border-default last:border-0">
+              <tr
+                key={schedule.id}
+                onClick={() => setSelectedPostId(schedule.post_id)}
+                className="cursor-pointer border-b border-border-default transition-colors last:border-0 hover:bg-bg-tertiary/40"
+              >
                 <td className="px-4 py-3">
                   <p className="max-w-xs truncate text-body-sm text-text-primary">
                     {schedule.post_title ?? 'Untitled post'}
@@ -130,7 +138,10 @@ export default function Scheduler() {
                     <button
                       type="button"
                       title="Cancel"
-                      onClick={() => handleCancel(schedule)}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleCancel(schedule)
+                      }}
                       className="rounded-md p-1.5 text-text-muted transition-colors hover:bg-bg-tertiary hover:text-accent-red"
                     >
                       <X size={15} />
@@ -142,6 +153,11 @@ export default function Scheduler() {
           </tbody>
         </table>
       </div>
+
+      <PostEditorDialog
+        post={selectedPost ?? null}
+        onOpenChange={(open) => !open && setSelectedPostId(null)}
+      />
     </div>
   )
 }
