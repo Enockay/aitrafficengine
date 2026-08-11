@@ -1,9 +1,17 @@
+import { useEffect } from 'react'
+
 import { SupportChatThread } from '@/components/support/SupportChatThread'
-import { useSendSupportMessage, useSupportThreadQuery } from '@/hooks/useSupportChat'
+import { useSendSupportMessage, useSupportThreadQuery, useSupportUnread } from '@/hooks/useSupportChat'
 
 export default function Support() {
   const { data: messages, isLoading } = useSupportThreadQuery()
   const sendMessage = useSendSupportMessage()
+  const { markRead } = useSupportUnread()
+
+  useEffect(() => {
+    markRead()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages])
 
   return (
     <div>

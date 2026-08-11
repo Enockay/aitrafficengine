@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { LifeBuoy, MessageCircle, Search, Sparkles } from 'lucide-react'
 
 import { SupportChatDrawer } from '@/components/support/SupportChatDrawer'
-import { useSupportContactEmailQuery } from '@/hooks/useSupportChat'
+import { useSupportContactEmailQuery, useSupportUnread } from '@/hooks/useSupportChat'
 
 // Fallback only for the instant a fresh session hasn't fetched /support/contact-email
 // yet — the real address is admin-set in Integrations > Support.
@@ -14,6 +14,12 @@ export function SupportWidget() {
   const [chatOpen, setChatOpen] = useState(false)
   const { data: contactEmail } = useSupportContactEmailQuery()
   const supportEmail = contactEmail ?? FALLBACK_SUPPORT_EMAIL
+  const { hasUnread, markRead } = useSupportUnread()
+
+  function openChat() {
+    setChatOpen(true)
+    markRead()
+  }
 
   return (
     <>
@@ -33,12 +39,15 @@ export function SupportWidget() {
               <button
                 onClick={() => {
                   setMenuOpen(false)
-                  setChatOpen(true)
+                  openChat()
                 }}
-                className="flex w-full items-center gap-2.5 px-4 py-3 text-left text-body-sm text-text-primary transition-colors hover:bg-bg-tertiary"
+                className="flex w-full items-center justify-between gap-2.5 px-4 py-3 text-left text-body-sm text-text-primary transition-colors hover:bg-bg-tertiary"
               >
-                <MessageCircle size={15} className="text-text-muted" />
-                Contact us
+                <span className="flex items-center gap-2.5">
+                  <MessageCircle size={15} className="text-text-muted" />
+                  Contact us
+                </span>
+                {hasUnread && <span className="h-2 w-2 shrink-0 rounded-full bg-accent-red" />}
               </button>
               <a
                 href={`mailto:${supportEmail}?subject=${encodeURIComponent('Suggestion for AI Traffic Engine')}`}
@@ -66,6 +75,11 @@ export function SupportWidget() {
         >
           <LifeBuoy size={16} />
           Support
+          {hasUnread && (
+            <span className="absolute -right-1 -top-1 flex h-3.5 w-3.5 items-center justify-center rounded-full border-2 border-bg-primary bg-accent-red">
+              <span className="absolute h-full w-full animate-ping rounded-full bg-accent-red opacity-75" />
+            </span>
+          )}
         </button>
       </div>
 
