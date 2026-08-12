@@ -1,3 +1,4 @@
+import logging
 from urllib.parse import urlparse
 
 from fastapi import FastAPI
@@ -29,6 +30,12 @@ from app.routers import (
 from app.services.flyer_generator import MEDIA_DIR
 
 settings = get_settings()
+
+# app.*.logger.info/.error calls (e.g. the Pinterest connector's publish diagnostics)
+# are no-ops without this — the stdlib root logger defaults to WARNING and uvicorn's
+# own dictConfig doesn't touch it. Wiring this up sends them to stdout, where
+# Coolify's log viewer picks them up.
+logging.basicConfig(level=settings.log_level)
 
 app = FastAPI(title=settings.app_name, debug=settings.debug)
 

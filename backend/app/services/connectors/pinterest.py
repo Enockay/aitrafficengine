@@ -1,3 +1,4 @@
+import logging
 import secrets
 from datetime import datetime, timedelta, timezone
 
@@ -33,6 +34,7 @@ PINS_URL = "https://api.pinterest.com/v5/pins"
 SCOPES = "boards:read,boards:write,pins:read,pins:write,user_accounts:read"
 
 settings = get_settings()
+logger = logging.getLogger(__name__)
 
 
 class PinterestConnector(PlatformConnector):
@@ -184,9 +186,20 @@ class PinterestConnector(PlatformConnector):
             body["link"] = f"{settings.backend_url}/r/{post.id}"
 
         headers = {"Authorization": f"Bearer {access_token}", "Content-Type": "application/json"}
+        # Strip the query string before logging — for an S3-backed image this is a
+        # presigned URL and the query string carries its signature/credentials.
+        loggable_image_url = image_url.split("?", 1)[0]
+        logger.info(
+            "Pinterest create-pin request: post_id=%s board_id=%s image_url=%s has_title=%s has_description=%s has_link=%s",
+            post.id, board_id, loggable_image_url, bool(post.title), bool(post.body), bool(post.tracked_url),
+        )
         with httpx.Client(timeout=15) as client:
             resp = client.post(PINS_URL, headers=headers, json=body)
         if resp.status_code >= 400:
+            logger.error(
+                "Pinterest create-pin failed: post_id=%s board_id=%s image_url=%s status=%s response=%s",
+                post.id, board_id, loggable_image_url, resp.status_code, resp.text,
+            )
             raise ConnectorPublishError(f"Pinterest publish failed: {resp.text}")
 
         pin_id = resp.json().get("id", "")
