@@ -23,4 +23,7 @@ export interface PlatformCredentialStatus {
   client_id_preview: string | null
   updated_at: string | null
   is_enabled: boolean
+  scopes: string[]
+  default_scopes: string[]
+  scopes_overridden: boolean
 }

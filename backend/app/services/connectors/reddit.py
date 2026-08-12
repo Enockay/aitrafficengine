@@ -29,6 +29,7 @@ USER_AGENT = "ai-traffic-engine/1.0"
 
 class RedditConnector(PlatformConnector):
     platform = "reddit"
+    default_scopes = SCOPES
 
     def is_configured(self, db: Session) -> bool:
         return platform_credentials.get_credentials(db, self.platform) is not None
@@ -44,11 +45,12 @@ class RedditConnector(PlatformConnector):
     def build_authorize_request(self, db: Session, redirect_uri: str) -> AuthorizeRequest:
         client_id, _ = self._require_configured(db)
         state = secrets.token_urlsafe(24)
+        scopes = platform_credentials.get_effective_scopes(db, self.platform, self.default_scopes)
         params = {
             "response_type": "code",
             "client_id": client_id,
             "redirect_uri": redirect_uri,
-            "scope": " ".join(SCOPES),
+            "scope": " ".join(scopes),
             "state": state,
             "duration": "permanent",
         }
@@ -78,7 +80,7 @@ class RedditConnector(PlatformConnector):
             expires_at=datetime.now(timezone.utc) + timedelta(seconds=expires_in),
             account_handle=me.get("name"),
             account_name=me.get("name"),
-            scopes=SCOPES,
+            scopes=platform_credentials.get_effective_scopes(db, self.platform, self.default_scopes),
             # Reddit returns this HTML-entity-encoded (e.g. "&amp;" in the query string) —
             # unescape it or the URL breaks. Empty string means no custom avatar set.
             avatar_url=html.unescape(me["icon_img"]) if me.get("icon_img") else None,

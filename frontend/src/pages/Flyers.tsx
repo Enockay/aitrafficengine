@@ -37,7 +37,7 @@ export default function Flyers() {
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-h1 text-text-primary">Flyers</h1>
         <Button onClick={() => setGenerateOpen(true)} disabled={pages.length === 0}>
           <Plus size={16} />

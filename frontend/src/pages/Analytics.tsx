@@ -66,9 +66,9 @@ export default function Analytics() {
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-h1 text-text-primary">Analytics</h1>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Select className="w-40" value={String(days)} onChange={(e) => setDays(Number(e.target.value))}>
             <option value="7">Last 7 days</option>
             <option value="30">Last 30 days</option>

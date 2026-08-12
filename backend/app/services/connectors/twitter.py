@@ -36,6 +36,7 @@ def _b64url(data: bytes) -> str:
 
 class TwitterConnector(PlatformConnector):
     platform = "twitter"
+    default_scopes = SCOPES
 
     def is_configured(self, db: Session) -> bool:
         return platform_credentials.get_credentials(db, self.platform) is not None
@@ -53,11 +54,12 @@ class TwitterConnector(PlatformConnector):
         state = secrets.token_urlsafe(24)
         code_verifier = _b64url(secrets.token_bytes(40))
         code_challenge = _b64url(hashlib.sha256(code_verifier.encode("ascii")).digest())
+        scopes = platform_credentials.get_effective_scopes(db, self.platform, self.default_scopes)
         params = {
             "response_type": "code",
             "client_id": client_id,
             "redirect_uri": redirect_uri,
-            "scope": " ".join(SCOPES),
+            "scope": " ".join(scopes),
             "state": state,
             "code_challenge": code_challenge,
             "code_challenge_method": "S256",
@@ -91,7 +93,7 @@ class TwitterConnector(PlatformConnector):
             expires_at=datetime.now(timezone.utc) + timedelta(seconds=expires_in),
             account_handle=me.get("username"),
             account_name=me.get("name"),
-            scopes=SCOPES,
+            scopes=platform_credentials.get_effective_scopes(db, self.platform, self.default_scopes),
             avatar_url=me.get("profile_image_url"),
         )
 

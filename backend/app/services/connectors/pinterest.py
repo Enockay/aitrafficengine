@@ -37,6 +37,7 @@ settings = get_settings()
 
 class PinterestConnector(PlatformConnector):
     platform = "pinterest"
+    default_scopes = SCOPES.split(",")
 
     def is_configured(self, db: Session) -> bool:
         return platform_credentials.get_credentials(db, self.platform) is not None
@@ -52,11 +53,12 @@ class PinterestConnector(PlatformConnector):
     def build_authorize_request(self, db: Session, redirect_uri: str) -> AuthorizeRequest:
         client_id, _ = self._require_configured(db)
         state = secrets.token_urlsafe(24)
+        scopes = platform_credentials.get_effective_scopes(db, self.platform, self.default_scopes)
         params = {
             "response_type": "code",
             "client_id": client_id,
             "redirect_uri": redirect_uri,
-            "scope": SCOPES,
+            "scope": ",".join(scopes),
             "state": state,
         }
         url = httpx.URL(AUTHORIZE_URL, params=params)
@@ -84,7 +86,11 @@ class PinterestConnector(PlatformConnector):
         # token without it instead of erroring the authorize step, so blindly storing
         # SCOPES here hides a mismatch until the next API call fails on it.
         granted_scope = payload.get("scope")
-        granted_scopes = granted_scope.replace(",", " ").split() if granted_scope else SCOPES.split(",")
+        granted_scopes = (
+            granted_scope.replace(",", " ").split()
+            if granted_scope
+            else platform_credentials.get_effective_scopes(db, self.platform, self.default_scopes)
+        )
 
         return TokenResult(
             access_token=access_token,

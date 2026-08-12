@@ -15,7 +15,15 @@ class PlatformCredentialOut(BaseModel):
     client_id_preview: str | None
     updated_at: datetime | None
     is_enabled: bool
+    scopes: list[str] = []
+    default_scopes: list[str] = []
+    scopes_overridden: bool = False
 
 
 class PlatformEnabledIn(BaseModel):
     is_enabled: bool
+
+
+class PlatformScopesIn(BaseModel):
+    # Space/comma-separated. Empty/whitespace-only resets to the connector's default.
+    scopes: str = Field(default="", max_length=2000)

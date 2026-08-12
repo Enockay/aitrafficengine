@@ -15,7 +15,12 @@ from app.models.schedule import Schedule
 from app.models.user import User
 from app.redis_client import get_redis
 from app.schemas.platform_account import ConnectUrlOut, PlatformAccountOut, PlatformStatusOut
-from app.schemas.platform_credential import PlatformCredentialIn, PlatformCredentialOut, PlatformEnabledIn
+from app.schemas.platform_credential import (
+    PlatformCredentialIn,
+    PlatformCredentialOut,
+    PlatformEnabledIn,
+    PlatformScopesIn,
+)
 from app.services import platform_credentials, platform_settings
 from app.services.activity_log import log_activity
 from app.services.connectors import get_connector, supported_platforms
@@ -34,6 +39,16 @@ def _callback_url(platform: str) -> str:
 
 def _oauth_state_key(platform: str, state: str) -> str:
     return f"oauth:{platform}:{state}"
+
+
+def _scopes_fields(db: Session, platform: str) -> dict:
+    default_scopes = get_connector(platform).default_scopes
+    override = platform_credentials.get_scopes_override(db, platform)
+    return {
+        "scopes": override or default_scopes,
+        "default_scopes": default_scopes,
+        "scopes_overridden": override is not None,
+    }
 
 
 @router.get("", response_model=list[PlatformStatusOut])
@@ -171,6 +186,7 @@ def get_platform_credentials(
         platform=platform,
         is_enabled=platform_settings.is_enabled(db, platform),
         **platform_credentials.get_status(db, platform),
+        **_scopes_fields(db, platform),
     )
 
 
@@ -198,6 +214,7 @@ def set_platform_credentials(
         platform=platform,
         is_enabled=platform_settings.is_enabled(db, platform),
         **platform_credentials.get_status(db, platform),
+        **_scopes_fields(db, platform),
     )
 
 
@@ -226,6 +243,7 @@ def remove_platform_credentials(
         platform=platform,
         is_enabled=platform_settings.is_enabled(db, platform),
         **platform_credentials.get_status(db, platform),
+        **_scopes_fields(db, platform),
     )
 
 
@@ -253,6 +271,35 @@ def set_platform_enabled(
         platform=platform,
         is_enabled=payload.is_enabled,
         **platform_credentials.get_status(db, platform),
+        **_scopes_fields(db, platform),
+    )
+
+
+@router.patch("/{platform}/scopes", response_model=PlatformCredentialOut)
+def set_platform_scopes(
+    platform: str,
+    payload: PlatformScopesIn,
+    request: Request,
+    current_user: User = Depends(require_role("admin")),
+    db: Session = Depends(get_db),
+):
+    if platform not in supported_platforms():
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Unsupported platform")
+    row = platform_credentials.upsert_scopes(db, platform, payload.scopes)
+    log_activity(
+        db,
+        user_id=current_user.id,
+        action="admin_set_platform_scopes",
+        entity_type="platform_credentials",
+        entity_id=row.id,
+        details={"platform": platform, "scopes": payload.scopes or None},
+        request=request,
+    )
+    return PlatformCredentialOut(
+        platform=platform,
+        is_enabled=platform_settings.is_enabled(db, platform),
+        **platform_credentials.get_status(db, platform),
+        **_scopes_fields(db, platform),
     )
 
 

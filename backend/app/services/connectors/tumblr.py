@@ -26,6 +26,7 @@ SCOPES = ["basic", "write", "offline_access"]
 
 class TumblrConnector(PlatformConnector):
     platform = "tumblr"
+    default_scopes = SCOPES
 
     def is_configured(self, db: Session) -> bool:
         return platform_credentials.get_credentials(db, self.platform) is not None
@@ -41,11 +42,12 @@ class TumblrConnector(PlatformConnector):
     def build_authorize_request(self, db: Session, redirect_uri: str) -> AuthorizeRequest:
         client_id, _ = self._require_configured(db)
         state = secrets.token_urlsafe(24)
+        scopes = platform_credentials.get_effective_scopes(db, self.platform, self.default_scopes)
         params = {
             "response_type": "code",
             "client_id": client_id,
             "redirect_uri": redirect_uri,
-            "scope": " ".join(SCOPES),
+            "scope": " ".join(scopes),
             "state": state,
         }
         url = httpx.URL(AUTHORIZE_URL, params=params)
@@ -81,7 +83,7 @@ class TumblrConnector(PlatformConnector):
             # though it isn't strictly the user's @handle.
             account_handle=primary_blog.get("name"),
             account_name=primary_blog.get("title") or primary_blog.get("name"),
-            scopes=SCOPES,
+            scopes=platform_credentials.get_effective_scopes(db, self.platform, self.default_scopes),
             avatar_url=f"https://api.tumblr.com/v2/blog/{primary_blog['name']}.tumblr.com/avatar/128"
             if primary_blog.get("name")
             else None,

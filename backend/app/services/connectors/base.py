@@ -46,6 +46,9 @@ class PublishResult:
 
 class PlatformConnector(ABC):
     platform: str
+    # Built-in OAuth scope list, used unless an admin has overridden it in Settings
+    # (see services/platform_credentials.get_effective_scopes).
+    default_scopes: list[str]
 
     @abstractmethod
     def is_configured(self, db: Session) -> bool: ...

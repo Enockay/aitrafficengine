@@ -1,12 +1,17 @@
 import { type FormEvent, useState } from 'react'
 import { toast } from 'sonner'
-import { Eye, EyeOff, Loader2, Pencil, Trash2 } from 'lucide-react'
+import { Eye, EyeOff, KeyRound, Loader2, Pencil, RotateCcw, Trash2 } from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { useRemovePlatformCredentials, useSetPlatformCredentials, useSetPlatformEnabled } from '@/hooks/usePlatforms'
+import {
+  useRemovePlatformCredentials,
+  useSetPlatformCredentials,
+  useSetPlatformEnabled,
+  useSetPlatformScopes,
+} from '@/hooks/usePlatforms'
 import { getErrorMessage } from '@/lib/errors'
 import type { PlatformCredentialStatus } from '@/types/platform'
 
@@ -58,10 +63,13 @@ export function PlatformCredentialCard({ status, canManage }: PlatformCredential
   const [editing, setEditing] = useState(false)
   const [clientId, setClientId] = useState('')
   const [clientSecret, setClientSecret] = useState('')
+  const [editingScopes, setEditingScopes] = useState(false)
+  const [scopesInput, setScopesInput] = useState('')
 
   const setCredentials = useSetPlatformCredentials()
   const removeCredentials = useRemovePlatformCredentials()
   const setEnabled = useSetPlatformEnabled()
+  const setScopes = useSetPlatformScopes()
 
   async function handleToggleEnabled() {
     const next = !status.is_enabled
@@ -96,6 +104,32 @@ export function PlatformCredentialCard({ status, canManage }: PlatformCredential
       toast.success(`${meta.label} credentials removed`)
     } catch {
       toast.error('Failed to remove credentials')
+    }
+  }
+
+  function openScopesEditor() {
+    setScopesInput((status.scopes_overridden ? status.scopes : status.default_scopes).join(', '))
+    setEditingScopes(true)
+  }
+
+  async function handleSaveScopes(event: FormEvent) {
+    event.preventDefault()
+    try {
+      await setScopes.mutateAsync({ platform: status.platform, scopes: scopesInput })
+      toast.success(`${meta.label} scopes updated`)
+      setEditingScopes(false)
+    } catch (error) {
+      toast.error(getErrorMessage(error, 'Failed to update scopes'))
+    }
+  }
+
+  async function handleResetScopes() {
+    try {
+      await setScopes.mutateAsync({ platform: status.platform, scopes: '' })
+      toast.success(`${meta.label} scopes reset to default`)
+      setEditingScopes(false)
+    } catch (error) {
+      toast.error(getErrorMessage(error, 'Failed to reset scopes'))
     }
   }
 
@@ -142,6 +176,70 @@ export function PlatformCredentialCard({ status, canManage }: PlatformCredential
           canManage && <span className="text-caption text-accent-blue">{status.is_enabled ? 'Hide' : 'Unhide'}</span>
         )}
       </button>
+
+      <div className="mb-3 rounded-md border border-border-default bg-bg-surface px-3 py-2">
+        <div className="mb-1.5 flex items-center justify-between gap-2">
+          <span className="flex items-center gap-1.5 text-caption text-text-muted">
+            <KeyRound size={12} />
+            OAuth scopes
+          </span>
+          {status.scopes_overridden && <Badge variant="info">Custom</Badge>}
+        </div>
+        {!editingScopes ? (
+          <>
+            <p className="text-body-sm text-text-secondary">{status.scopes.join(', ')}</p>
+            {canManage && (
+              <button
+                type="button"
+                onClick={openScopesEditor}
+                className="mt-1.5 text-caption font-medium text-accent-blue hover:underline"
+              >
+                Edit scopes
+              </button>
+            )}
+          </>
+        ) : (
+          <form onSubmit={handleSaveScopes} className="space-y-2">
+            <textarea
+              value={scopesInput}
+              onChange={(e) => setScopesInput(e.target.value)}
+              rows={2}
+              placeholder={status.default_scopes.join(', ')}
+              className="w-full resize-none rounded-md border border-border-default bg-bg-primary px-2.5 py-2 text-body-sm text-text-primary focus-visible:outline-none focus-visible:border-border-focus"
+            />
+            <p className="text-caption text-text-muted">
+              Comma or space separated. Default: {status.default_scopes.join(', ')}
+            </p>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => setEditingScopes(false)}
+                disabled={setScopes.isPending}
+              >
+                Cancel
+              </Button>
+              {status.scopes_overridden && (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={handleResetScopes}
+                  disabled={setScopes.isPending}
+                  title="Reset to default"
+                >
+                  <RotateCcw size={13} />
+                </Button>
+              )}
+              <Button type="submit" size="sm" className="flex-1" disabled={setScopes.isPending}>
+                {setScopes.isPending ? <Loader2 size={14} className="animate-spin" /> : null}
+                Save
+              </Button>
+            </div>
+          </form>
+        )}
+      </div>
 
       {!editing ? (
         <>

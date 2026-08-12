@@ -1,3 +1,5 @@
+import re
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -25,7 +27,7 @@ def get_row(db: Session, platform: str) -> PlatformCredential | None:
 
 def get_credentials(db: Session, platform: str) -> tuple[str, str] | None:
     row = get_row(db, platform)
-    if row:
+    if row and row.client_id and row.client_secret:
         return row.client_id, row.client_secret
 
     client_id, client_secret = _ENV_FALLBACK.get(platform, (None, None))
@@ -49,9 +51,16 @@ def upsert_credentials(db: Session, platform: str, client_id: str, client_secret
 
 def delete_credentials(db: Session, platform: str) -> None:
     row = get_row(db, platform)
-    if row:
+    if not row:
+        return
+    if row.scopes:
+        # A scopes override lives on this same row — drop just the id/secret instead
+        # of the whole row, or "remove credentials" would silently wipe the override.
+        row.client_id = None
+        row.client_secret = None
+    else:
         db.delete(row)
-        db.commit()
+    db.commit()
 
 
 def mask_client_id(client_id: str) -> str:
@@ -62,7 +71,7 @@ def mask_client_id(client_id: str) -> str:
 
 def get_status(db: Session, platform: str) -> dict:
     row = get_row(db, platform)
-    if row:
+    if row and row.client_id and row.client_secret:
         return {
             "configured": True,
             "source": "database",
@@ -80,3 +89,35 @@ def get_status(db: Session, platform: str) -> dict:
         }
 
     return {"configured": False, "source": "none", "client_id_preview": None, "updated_at": None}
+
+
+def parse_scopes(value: str) -> list[str]:
+    """Splits an admin-typed scope override on any mix of commas/whitespace, so it
+    doesn't matter which delimiter convention they use — each connector re-joins the
+    result with whatever separator that platform's OAuth API actually expects.
+    """
+    return [s for s in re.split(r"[,\s]+", value.strip()) if s]
+
+
+def get_scopes_override(db: Session, platform: str) -> list[str] | None:
+    row = get_row(db, platform)
+    if row and row.scopes and row.scopes.strip():
+        return parse_scopes(row.scopes)
+    return None
+
+
+def get_effective_scopes(db: Session, platform: str, default: list[str]) -> list[str]:
+    return get_scopes_override(db, platform) or default
+
+
+def upsert_scopes(db: Session, platform: str, scopes: str | None) -> PlatformCredential:
+    normalized = scopes.strip() if scopes and scopes.strip() else None
+    row = get_row(db, platform)
+    if row:
+        row.scopes = normalized
+    else:
+        row = PlatformCredential(platform=platform, scopes=normalized)
+        db.add(row)
+    db.commit()
+    db.refresh(row)
+    return row

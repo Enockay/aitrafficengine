@@ -63,7 +63,7 @@ export default function Posts() {
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-baseline gap-2.5">
           <h1 className="text-h1 text-text-primary">Posts</h1>
           {!isLoading && !isError && (

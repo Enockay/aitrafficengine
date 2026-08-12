@@ -71,6 +71,19 @@ export function useSetPlatformEnabled() {
   })
 }
 
+export function useSetPlatformScopes() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ platform, scopes }: { platform: string; scopes: string }) => {
+      const { data } = await api.patch<PlatformCredentialStatus>(`/platforms/${platform}/scopes`, { scopes })
+      return data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['platform-credentials'] })
+    },
+  })
+}
+
 export function useRemovePlatformCredentials() {
   const queryClient = useQueryClient()
   return useMutation({

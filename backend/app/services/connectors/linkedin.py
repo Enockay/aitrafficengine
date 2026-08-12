@@ -27,6 +27,7 @@ SCOPES = ["openid", "profile", "w_member_social"]
 
 class LinkedInConnector(PlatformConnector):
     platform = "linkedin"
+    default_scopes = SCOPES
 
     def is_configured(self, db: Session) -> bool:
         return platform_credentials.get_credentials(db, self.platform) is not None
@@ -42,11 +43,12 @@ class LinkedInConnector(PlatformConnector):
     def build_authorize_request(self, db: Session, redirect_uri: str) -> AuthorizeRequest:
         client_id, _ = self._require_configured(db)
         state = secrets.token_urlsafe(24)
+        scopes = platform_credentials.get_effective_scopes(db, self.platform, self.default_scopes)
         params = {
             "response_type": "code",
             "client_id": client_id,
             "redirect_uri": redirect_uri,
-            "scope": " ".join(SCOPES),
+            "scope": " ".join(scopes),
             "state": state,
         }
         url = httpx.URL(AUTHORIZE_URL, params=params)
@@ -79,7 +81,7 @@ class LinkedInConnector(PlatformConnector):
             expires_at=datetime.now(timezone.utc) + timedelta(seconds=expires_in),
             account_handle=me.get("sub"),
             account_name=me.get("name"),
-            scopes=SCOPES,
+            scopes=platform_credentials.get_effective_scopes(db, self.platform, self.default_scopes),
             avatar_url=me.get("picture"),
         )
 

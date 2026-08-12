@@ -206,14 +206,6 @@ export default function Platforms() {
                                 @{account.account_handle}
                               </p>
                             )}
-                            {account.scopes && account.scopes.length > 0 && (
-                              <p
-                                className="truncate text-caption leading-tight text-text-muted"
-                                title={`Granted scopes: ${account.scopes.join(', ')}`}
-                              >
-                                Scopes: {account.scopes.join(', ')}
-                              </p>
-                            )}
                           </div>
                         </div>
                         <button

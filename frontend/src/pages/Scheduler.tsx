@@ -55,9 +55,9 @@ export default function Scheduler() {
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-h1 text-text-primary">Scheduler</h1>
-        <Select className="w-40" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+        <Select className="w-full sm:w-40" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
           <option value="">All statuses</option>
           <option value="pending">Pending</option>
           <option value="published">Published</option>

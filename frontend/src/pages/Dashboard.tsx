@@ -106,11 +106,11 @@ export default function Dashboard() {
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-h1 text-text-primary">
           Welcome back{user ? `, ${user.full_name.split(' ')[0]}` : ''}
         </h1>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button asChild variant="secondary" size="sm">
             <Link to="/sites">
               <Globe size={14} /> Add site
