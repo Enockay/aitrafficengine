@@ -6,6 +6,7 @@ export interface PlatformAccount {
   avatar_url: string | null
   is_active: boolean
   token_expires_at: string | null
+  scopes: string[] | null
   created_at: string
 }
 

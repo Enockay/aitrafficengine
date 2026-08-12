@@ -26,7 +26,11 @@ BOARDS_URL = "https://api.pinterest.com/v5/boards"
 PINS_URL = "https://api.pinterest.com/v5/pins"
 # Pinterest scopes are comma-separated, unlike every other connector's space-separated
 # OAuth2 scope string — this isn't a typo, it's what their API actually expects.
-SCOPES = "boards:read,pins:read,pins:write,user_accounts:read"
+# boards:write looks unnecessary for a pin-only flow (we never create/edit boards
+# ourselves), but Pinterest's Create Pin endpoint rejects tokens without it anyway —
+# an undocumented quirk on their end, not our bug. See:
+# https://community.pinterest.biz/t/boards-write-permission-is-required-when-creating-pins/44201
+SCOPES = "boards:read,boards:write,pins:read,pins:write,user_accounts:read"
 
 settings = get_settings()
 
@@ -75,13 +79,20 @@ class PinterestConnector(PlatformConnector):
         expires_in = payload.get("expires_in", 2592000)
         me = self._get_me(access_token)
 
+        # Trust what Pinterest actually granted, not what we asked for — an app can
+        # request a scope it isn't approved for and Pinterest will silently issue a
+        # token without it instead of erroring the authorize step, so blindly storing
+        # SCOPES here hides a mismatch until the next API call fails on it.
+        granted_scope = payload.get("scope")
+        granted_scopes = granted_scope.replace(",", " ").split() if granted_scope else SCOPES.split(",")
+
         return TokenResult(
             access_token=access_token,
             refresh_token=payload.get("refresh_token"),
             expires_at=datetime.now(timezone.utc) + timedelta(seconds=expires_in),
             account_handle=me.get("username"),
             account_name=me.get("username"),
-            scopes=SCOPES.split(","),
+            scopes=granted_scopes,
             avatar_url=me.get("profile_image"),
         )
 

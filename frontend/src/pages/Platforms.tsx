@@ -102,8 +102,8 @@ export default function Platforms() {
     try {
       await disconnectPlatform.mutateAsync(account.id)
       toast.success('Account disconnected')
-    } catch {
-      toast.error('Failed to disconnect account')
+    } catch (error) {
+      toast.error(getErrorMessage(error, 'Failed to disconnect account'))
     }
   }
 
@@ -204,6 +204,14 @@ export default function Platforms() {
                             {showHandle && (
                               <p className="truncate text-caption leading-tight text-text-muted">
                                 @{account.account_handle}
+                              </p>
+                            )}
+                            {account.scopes && account.scopes.length > 0 && (
+                              <p
+                                className="truncate text-caption leading-tight text-text-muted"
+                                title={`Granted scopes: ${account.scopes.join(', ')}`}
+                              >
+                                Scopes: {account.scopes.join(', ')}
                               </p>
                             )}
                           </div>

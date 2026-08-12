@@ -1,6 +1,7 @@
 import json
 import uuid
 
+from celery_worker import celery_app
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import RedirectResponse
 from sqlalchemy import select
@@ -10,6 +11,7 @@ from app.config import get_settings
 from app.database import get_db
 from app.middleware.auth import get_current_user, require_role
 from app.models.platform_account import PlatformAccount
+from app.models.schedule import Schedule
 from app.models.user import User
 from app.redis_client import get_redis
 from app.schemas.platform_account import ConnectUrlOut, PlatformAccountOut, PlatformStatusOut
@@ -18,6 +20,7 @@ from app.services import platform_credentials, platform_settings
 from app.services.activity_log import log_activity
 from app.services.connectors import get_connector, supported_platforms
 from app.services.connectors.base import ConnectorAuthError, ConnectorNotConfigured
+from app.services.distribution import cancel_schedule
 
 router = APIRouter(prefix="/platforms", tags=["platforms"])
 settings = get_settings()
@@ -268,6 +271,24 @@ def disconnect_platform(
     if not account:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Platform account not found")
     platform = account.platform
+
+    # schedules.platform_account_id is a NOT NULL FK with no cascade — any schedule
+    # ever queued against this account (pending, published, or failed) would otherwise
+    # block the delete outright. Pending ones go through cancel_schedule() so the
+    # backing post correctly reverts to 'approved' (and its Celery ETA task is
+    # revoked) instead of being left showing 'scheduled' forever with no schedule row
+    # behind it. Published/failed rows are just queue history — the durable record of
+    # what actually happened lives on Post (status/published_at/published_url), so
+    # those are dropped outright.
+    schedules = db.execute(select(Schedule).where(Schedule.platform_account_id == account.id)).scalars().all()
+    for schedule in schedules:
+        if schedule.status == "pending":
+            task_id = schedule.celery_task_id
+            cancel_schedule(db, schedule)
+            if task_id:
+                celery_app.control.revoke(task_id)
+        else:
+            db.delete(schedule)
     db.delete(account)
     db.commit()
     log_activity(
