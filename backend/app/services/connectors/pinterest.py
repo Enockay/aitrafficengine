@@ -154,6 +154,14 @@ class PinterestConnector(PlatformConnector):
             raise ConnectorPublishError(
                 "Pinterest requires an image. Attach one to this post before publishing."
             )
+        # The editor lets you attach a video for a Pinterest post, but we only ever send
+        # media_source_type "image_url" below — feeding Pinterest a video URL there fails
+        # server-side with a generic, unhelpful error rather than a clear one. Reject it
+        # up front until video pins (multi-step upload + "video_id" source) are supported.
+        if post.media_type == "video":
+            raise ConnectorPublishError(
+                "Pinterest doesn't support video pins here yet. Attach an image instead."
+            )
 
         board_id = self._get_first_board_id(access_token)
         if not board_id:
