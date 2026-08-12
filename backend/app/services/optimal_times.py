@@ -22,6 +22,7 @@ FALLBACK_SLOTS: dict[str, list[tuple[int, int]]] = {
     # Reddit's per-subreddit rate limits/rules are a publish-time concern handled by
     # the connector layer, not a timing-suggestion concern — no special-casing needed here.
     "reddit": [(1, 7), (5, 11), (6, 9), (1, 17), (3, 7)],
+    "pinterest": [(6, 20), (0, 21), (5, 15), (2, 14), (3, 21)],
 }
 
 
