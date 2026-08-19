@@ -13,6 +13,12 @@ AUTHENTICATED_WINDOW_SECONDS = 15 * 60
 UNAUTHENTICATED_LIMIT = 20
 UNAUTHENTICATED_WINDOW_SECONDS = 60
 
+# Account creation gets its own, much tighter budget than general unauthenticated
+# traffic — the generic 20/minute limit is fine for browsing but is still enough to
+# script hundreds of signups an hour from a single IP.
+REGISTER_LIMIT = 5
+REGISTER_WINDOW_SECONDS = 60 * 60
+
 EXEMPT_PATHS = {"/health", "/docs", "/openapi.json", "/redoc"}
 
 
@@ -29,6 +35,8 @@ def _identify(request: Request) -> tuple[str, int, int]:
             pass
 
     client_ip = request.client.host if request.client else "unknown"
+    if request.method == "POST" and request.url.path.endswith("/auth/register"):
+        return f"ratelimit:register:ip:{client_ip}", REGISTER_LIMIT, REGISTER_WINDOW_SECONDS
     return f"ratelimit:ip:{client_ip}", UNAUTHENTICATED_LIMIT, UNAUTHENTICATED_WINDOW_SECONDS
 
 

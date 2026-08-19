@@ -23,9 +23,26 @@ class EmailNotVerifiedError(Exception):
     pass
 
 
+# Gmail (and Google Workspace's old googlemail.com alias) ignores dots in the local
+# part and everything from a "+" on, so "a.b+x@gmail.com" and "ab@gmail.com" deliver
+# to the same inbox. Left unnormalized, that's a free trial-abuse loophole — one
+# inbox can register unlimited "distinct" accounts. Canonicalizing here, at both
+# storage and lookup time, closes it without touching how the user's email displays
+# anywhere else.
+_DOT_STRIPPED_DOMAINS = {"gmail.com", "googlemail.com"}
+
+
+def normalize_email(email: str) -> str:
+    local, _, domain = email.strip().lower().rpartition("@")
+    if domain in _DOT_STRIPPED_DOMAINS:
+        local = local.split("+", 1)[0].replace(".", "")
+        domain = "gmail.com"
+    return f"{local}@{domain}"
+
+
 def get_user_by_email(db: Session, email: str) -> User | None:
     return db.execute(
-        select(User).where(User.email == email, User.deleted_at.is_(None))
+        select(User).where(User.email == normalize_email(email), User.deleted_at.is_(None))
     ).scalar_one_or_none()
 
 
@@ -65,6 +82,7 @@ def register_user(
     timezone_name: str = "UTC",
     referral_code: str | None = None,
 ) -> tuple[User, str]:
+    email = normalize_email(email)
     if get_user_by_email(db, email):
         raise AuthError("A user with this email already exists.")
 

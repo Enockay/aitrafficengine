@@ -10,6 +10,12 @@ PASSWORD_REQUIREMENTS_MESSAGE = (
     "a lowercase letter, and a number."
 )
 PHONE_COUNTRY_CODE_PATTERN = re.compile(r"^\+\d{1,4}$")
+# Letters (any script, via the "word char that's not a digit/underscore" idiom —
+# Python's re has no \p{L}), spaces, hyphens, apostrophes, periods. Covers real names
+# ("O'Brien", "Jean-Luc", "Al.") while rejecting digits/symbols. This is data
+# hygiene, not a bot filter: a script that bothers to send "Random Name" instead of
+# a token sails right through, same as a human would.
+FULL_NAME_PATTERN = re.compile(r"^[^\W\d_](?:[^\W\d_]|[ '.\-])*$")
 
 
 class UserRegister(BaseModel):
@@ -27,6 +33,14 @@ class UserRegister(BaseModel):
     def validate_password(cls, v: str) -> str:
         if not PASSWORD_PATTERN.match(v):
             raise ValueError(PASSWORD_REQUIREMENTS_MESSAGE)
+        return v
+
+    @field_validator("full_name")
+    @classmethod
+    def validate_full_name(cls, v: str) -> str:
+        v = " ".join(v.split())  # trim + collapse internal whitespace
+        if not (2 <= len(v) <= 150) or not FULL_NAME_PATTERN.match(v):
+            raise ValueError("Full name must be 2-150 characters and contain only letters, spaces, hyphens, apostrophes, and periods.")
         return v
 
     @field_validator("phone_country_code")
