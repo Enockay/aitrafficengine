@@ -25,6 +25,9 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     api_v1_prefix: str = "/api/v1"
     backend_url: str = "http://localhost:8000"
+    # Cloudflare Turnstile CAPTCHA on registration. Unset (local dev default) skips
+    # verification entirely — see app/services/turnstile.py.
+    turnstile_secret_key: str | None = None
 
     # Database
     database_url: str = "postgresql+psycopg://postgres:postgres@localhost:5432/ai_traffic_engine"

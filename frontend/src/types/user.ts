@@ -20,6 +20,7 @@ export interface RegisterPayload {
   phone_number?: string
   timezone: string
   referral_code?: string
+  turnstile_token?: string
 }
 
 export interface ProfileUpdatePayload {

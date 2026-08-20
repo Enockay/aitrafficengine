@@ -1,15 +1,17 @@
-import { type FormEvent, useEffect, useState } from 'react'
+import { type FormEvent, useEffect, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Building2, Eye, EyeOff, Gift, Loader2, Lock, LogIn, Mail, MailCheck, Phone, User } from 'lucide-react'
 
 import { AuthLayout } from '@/components/layout/AuthLayout'
+import { TurnstileWidget, type TurnstileWidgetHandle } from '@/components/auth/TurnstileWidget'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
 import { useAuth } from '@/hooks/useAuth'
 import { COUNTRY_CODES } from '@/lib/countryCodes'
+import { TURNSTILE_SITE_KEY } from '@/lib/constants'
 import { getErrorMessage } from '@/lib/errors'
 import { getClientTimezone } from '@/lib/timezone'
 
@@ -28,6 +30,8 @@ export default function Register() {
   const [referralCode, setReferralCode] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [turnstileToken, setTurnstileToken] = useState('')
+  const turnstileRef = useRef<TurnstileWidgetHandle>(null)
 
   const [registered, setRegistered] = useState(false)
   const [isResending, setIsResending] = useState(false)
@@ -57,10 +61,14 @@ export default function Register() {
         phone_number: phoneNumber || undefined,
         timezone: getClientTimezone(),
         referral_code: referralCode || undefined,
+        turnstile_token: turnstileToken || undefined,
       })
       setRegistered(true)
     } catch (error) {
       toast.error(getErrorMessage(error, 'Registration failed'))
+      // Turnstile tokens are single-use — get a fresh one for the retry.
+      turnstileRef.current?.reset()
+      setTurnstileToken('')
     } finally {
       setIsSubmitting(false)
     }
@@ -265,7 +273,15 @@ export default function Register() {
                 </div>
               </div>
 
-              <Button type="submit" className="w-full" disabled={isSubmitting}>
+              {TURNSTILE_SITE_KEY && (
+                <TurnstileWidget ref={turnstileRef} onVerify={setTurnstileToken} />
+              )}
+
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={isSubmitting || (!!TURNSTILE_SITE_KEY && !turnstileToken)}
+              >
                 {isSubmitting ? (
                   <>
                     <Loader2 size={16} className="animate-spin" />

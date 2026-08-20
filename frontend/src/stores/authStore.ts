@@ -53,6 +53,7 @@ export const useAuthStore = create<AuthState>()(
           phone_number: payload.phone_number || undefined,
           timezone: payload.timezone,
           referral_code: payload.referral_code || undefined,
+          turnstile_token: payload.turnstile_token || undefined,
         })
       },
 

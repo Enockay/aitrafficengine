@@ -27,6 +27,7 @@ class UserRegister(BaseModel):
     phone_number: str | None = None
     timezone: str = "UTC"
     referral_code: str | None = None
+    turnstile_token: str | None = None
 
     @field_validator("password")
     @classmethod

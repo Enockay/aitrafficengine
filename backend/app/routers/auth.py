@@ -42,6 +42,7 @@ from app.services.email import (
     send_password_reset_email,
     send_verification_email,
 )
+from app.services import turnstile
 from app.utils.security import (
     InvalidTokenError,
     create_access_token,
@@ -117,6 +118,9 @@ def _send_password_reset_email(db: Session, user: User, raw_token: str) -> None:
 
 @router.post("/register", response_model=RegisterResponse, status_code=status.HTTP_201_CREATED)
 def register(payload: UserRegister, request: Request, db: Session = Depends(get_db)):
+    client_ip = request.client.host if request.client else None
+    if not turnstile.verify(payload.turnstile_token, client_ip):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="CAPTCHA verification failed. Please try again.")
     try:
         user, raw_token = register_user(
             db,
